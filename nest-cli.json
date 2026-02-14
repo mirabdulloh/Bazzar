@@ -1,8 +1,32 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/bazaar-api/src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/bazaar-api/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/bazaar-api",
+  "projects": {
+    "bazzar-api": {
+      "type": "application",
+      "root": "apps/bazaar-api",
+      "entryFile": "main",
+      "sourceRoot": "apps/bazaar-api/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/bazaar-api/tsconfig.app.json"
+      }
+    },
+    "bazaar-batch": {
+      "type": "application",
+      "root": "apps/bazaar-batch",
+      "entryFile": "main",
+      "sourceRoot": "apps/bazaar-batch/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/bazaar-batch/tsconfig.app.json"
+      }
+    }
   }
 }
