@@ -8,13 +8,7 @@ import {
 import { Model } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
 import { InjectModel } from '@nestjs/mongoose';
-import {
-	BrandInquiry,
-	ChangePasswordInput,
-	LoginInput,
-	MemberInput,
-	MembersInquiry,
-} from '../../libs/dto/member/member.input';
+import { BrandInquiry, ChangePasswordInput, LoginInput, MemberInput } from '../../libs/dto/member/member.input';
 import { Message } from '../../libs/enums/common.enum';
 import { AuthService } from '../auth/auth.service';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
@@ -65,93 +59,107 @@ export class MemberService {
 		return response;
 	}
 
-	// ! Get Members (Paginated List)
-	public async getMembers(input: MembersInquiry): Promise<MembersData> {
-		const { page, limit, sort = 'createdAt', direction = -1, search } = input;
+	// // ! Get Members (Paginated List)
+	// public async getMembers(input: MembersInquiry): Promise<MembersData> {
+	// 	const { page, limit, sort = 'createdAt', direction = -1, search } = input;
 
-		const query: any = {};
+	// 	const query: any = {};
 
-		// Filter by member type
-		if (search.memberType) {
-			query.memberType = search.memberType;
-		}
+	// 	// Filter by member type
+	// 	if (search.memberType) {
+	// 		query.memberType = search.memberType;
+	// 	}
 
-		// Filter by member status
-		if (search.memberStatus) {
-			query.memberStatus = search.memberStatus;
-		}
+	// 	// Filter by member status
+	// 	if (search.memberStatus) {
+	// 		query.memberStatus = search.memberStatus;
+	// 	}
 
-		// Search by text (memberNick or memberEmail)
-		if (search.text) {
-			query.$or = [
-				{ memberNick: { $regex: search.text, $options: 'i' } },
-				{ memberEmail: { $regex: search.text, $options: 'i' } },
-			];
-		}
+	// 	// Search by text (memberNick or memberEmail)
+	// 	if (search.text) {
+	// 		query.$or = [
+	// 			{ memberNick: { $regex: search.text, $options: 'i' } },
+	// 			{ memberEmail: { $regex: search.text, $options: 'i' } },
+	// 		];
+	// 	}
 
-		// Execute query with pagination
-		const [members, total] = await Promise.all([
-			this.memberModel
-				.find(query)
-				.select('-memberPassword') // Never return password
-				.skip((page - 1) * limit)
-				.limit(limit)
-				.sort({ [sort]: direction })
-				.lean()
-				.exec(),
-			this.memberModel.countDocuments(query),
-		]);
+	// 	// Execute query with pagination
+	// 	const [members, total] = await Promise.all([
+	// 		this.memberModel
+	// 			.find(query)
+	// 			.select('-memberPassword') // Never return password
+	// 			.skip((page - 1) * limit)
+	// 			.limit(limit)
+	// 			.sort({ [sort]: direction })
+	// 			.lean()
+	// 			.exec(),
+	// 		this.memberModel.countDocuments(query),
+	// 	]);
 
-		return {
-			members,
-			metaData: {
-				total,
-				page,
-				limit,
-			},
-		};
-	}
+	// 	return {
+	// 		members,
+	// 		metaData: {
+	// 			total,
+	// 			page,
+	// 			limit,
+	// 		},
+	// 	};
+	// }
 
 	// ! Get Brands (Paginated List)
 	public async getBrands(memberId: string | null, input: BrandInquiry): Promise<MembersData> {
 		const { page, limit, sort = 'createdAt', direction = -1, search } = input;
 
-		const query: any = {
+		// same logic as your query
+		const match: any = {
 			memberType: MemberType.BRAND,
 			memberStatus: { $ne: MemberStatus.DELETE },
 		};
 
-		if (search.memberStatus) {
-			query.memberStatus = search.memberStatus;
+		if (search?.memberStatus) {
+			match.memberStatus = search.memberStatus;
 		}
 
-		if (search.text) {
-			query.$or = [
+		if (search?.text) {
+			match.$or = [
 				{ memberNick: { $regex: search.text, $options: 'i' } },
 				{ memberEmail: { $regex: search.text, $options: 'i' } },
 			];
 		}
 
-		const [members, total] = await Promise.all([
-			this.memberModel
-				.find(query)
-				.select('-memberPassword')
-				.skip((page - 1) * limit)
-				.limit(limit)
-				.sort({ [sort]: direction })
-				.lean()
-				.exec(),
-			this.memberModel.countDocuments(query),
+		const sortStage: any = { [sort]: direction };
+
+		const result = await this.memberModel.aggregate([
+			{ $match: match },
+			{ $sort: sortStage },
+			{
+				$facet: {
+					members: [
+						{ $skip: (page - 1) * limit },
+						{ $limit: limit },
+						{ $project: { memberPassword: 0 } }, // same as .select('-memberPassword')
+					],
+					metaCounter: [{ $count: 'total' }],
+				},
+			},
+			{
+				$addFields: {
+					total: { $ifNull: [{ $arrayElemAt: ['$metaCounter.total', 0] }, 0] },
+				},
+			},
+			{
+				$project: {
+					members: 1,
+					metaData: {
+						total: '$total',
+						page: { $literal: page },
+						limit: { $literal: limit },
+					},
+				},
+			},
 		]);
 
-		return {
-			members,
-			metaData: {
-				total,
-				page,
-				limit,
-			},
-		};
+		return result?.[0] ?? { members: [], metaData: { total: 0, page, limit } };
 	}
 
 	// ! Get Single Member by ID
