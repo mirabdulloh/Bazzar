@@ -30,10 +30,10 @@ export enum OrderPaymentStatus {
 
 registerEnumType(OrderPaymentStatus, { name: 'OrderPaymentStatus' });
 
-export enum orderDeliveryStatus {
+export enum OrderDeliveryStatus {
 	PREPARING = 'PREPARING',
 	SHIPPING = 'SHIPPING',
 	DELIVERED = 'DELIVERED',
 }
 
-registerEnumType(orderDeliveryStatus, { name: 'orderDeliveryStatus' });
+registerEnumType(OrderDeliveryStatus, { name: 'orderDeliveryStatus' });
