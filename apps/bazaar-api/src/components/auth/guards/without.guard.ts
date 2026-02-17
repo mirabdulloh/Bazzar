@@ -1,51 +1,31 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 import { AuthService } from '../auth.service';
 
 @Injectable()
 export class WithoutGuard implements CanActivate {
 	constructor(private authService: AuthService) {}
 
-	async canActivate(context: ExecutionContext): Promise<boolean> {
+	async canActivate(context: ExecutionContext | any): Promise<boolean> {
 		console.info('--- @guard() Authentication [WithoutGuard] ---');
 
-		if (context.getType<GqlContextType>() === 'graphql') {
-			const gqlContext = GqlExecutionContext.create(context);
-			const ctx = gqlContext.getContext();
-			const request = ctx.req;
-			const bearerToken = request.headers.authorization;
+		if (context.contextType === 'graphql') {
+			const request = context.getArgByIndex(2).req,
+				bearerToken = request.headers.authorization;
 
 			if (bearerToken) {
 				try {
-					const token = bearerToken.split(' ')[1];
-					const authMember = await this.authService.verifyToken(token);
-					ctx.req.user = authMember;
+					const token = bearerToken.split(' ')[1],
+						authMember = await this.authService.verifyToken(token);
+					request.body.authMember = authMember;
 				} catch (err) {
-					ctx.req.user = null;
+					request.body.authMember = null;
 				}
-			} else {
-				ctx.req.user = null;
-			}
+			} else request.body.authMember = null;
 
-			console.log('memberNick[without] =>', ctx.req.user?.memberNick ?? 'none');
+			console.log('memberNick[without] =>', request.body.authMember?.memberNick ?? 'none');
 			return true;
 		}
 
-		const request = context.switchToHttp().getRequest();
-		const bearerToken = request.headers.authorization;
-
-		if (bearerToken) {
-			try {
-				const token = bearerToken.split(' ')[1];
-				const authMember = await this.authService.verifyToken(token);
-				request.user = authMember;
-			} catch (err) {
-				request.user = null;
-			}
-		} else {
-			request.user = null;
-		}
-
-		return true;
+		// description => http, rpc, gprs and etc are ignored
 	}
 }

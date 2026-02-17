@@ -1,35 +1,38 @@
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
+import { AuthService } from '../auth.service';
 import { Message } from 'apps/bazaar-api/src/libs/enums/common.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-	constructor(private reflector: Reflector) {}
+	constructor(
+		private reflector: Reflector,
+		private authService: AuthService,
+	) {}
 
-	async canActivate(context: ExecutionContext): Promise<boolean> {
+	async canActivate(context: ExecutionContext | any): Promise<boolean> {
 		const roles = this.reflector.get<string[]>('roles', context.getHandler());
-		if (!roles || roles.length === 0) return true;
+		if (!roles) return true;
 
 		console.info(`--- @guard() Authentication [RolesGuard]: ${roles} ---`);
 
-		let user: any;
+		if (context.contextType === 'graphql') {
+			const request = context.getArgByIndex(2).req;
+			const bearerToken = request.headers.authorization;
+			if (!bearerToken) throw new BadRequestException(Message.TOKEN_NOT_EXIST);
 
-		if (context.getType<GqlContextType>() === 'graphql') {
-			const gqlContext = GqlExecutionContext.create(context);
-			const ctx = gqlContext.getContext();
-			user = ctx.req.user;
-		} else {
-			const request = context.switchToHttp().getRequest();
-			user = request.user;
+			const token = bearerToken.split(' ')[1],
+				authMember = await this.authService.verifyToken(token),
+				hasRole = () => roles.includes(authMember.memberType),
+				hasPermission: boolean = hasRole();
+
+			if (!authMember || !hasPermission) throw new ForbiddenException(Message.ONLY_SPECIFIC_ROLES_ALLOWED);
+
+			console.log('memberNick[roles] =>', authMember.memberNick);
+			request.body.authMember = authMember;
+			return true;
 		}
 
-		if (!user) throw new ForbiddenException(Message.NOT_AUTHENTICATED);
-
-		const hasRole = roles.includes(user.memberType);
-		if (!hasRole) throw new ForbiddenException(Message.ONLY_SPECIFIC_ROLES_ALLOWED);
-
-		console.log('memberNick[roles] =>', user.memberNick);
-		return true;
+		// description => http, rpc, gprs and etc are ignored
 	}
 }
