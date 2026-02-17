@@ -87,6 +87,48 @@ export class AgentsInquiry {
 }
 
 @InputType()
+class BISearch {
+	@IsOptional()
+	@IsEnum(MemberStatus)
+	@Field(() => MemberStatus, { nullable: true })
+	memberStatus?: MemberStatus;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+@InputType()
+export class BrandInquiry {
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableAgentSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsNotEmpty()
+	@Field(() => BISearch)
+	search: BISearch;
+}
+
+@InputType()
 class MISearch {
 	@IsOptional()
 	@IsEnum(MemberStatus)

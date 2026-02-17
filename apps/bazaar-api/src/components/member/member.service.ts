@@ -8,11 +8,17 @@ import {
 import { Model } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
 import { InjectModel } from '@nestjs/mongoose';
-import { ChangePasswordInput, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
+import {
+	BrandInquiry,
+	ChangePasswordInput,
+	LoginInput,
+	MemberInput,
+	MembersInquiry,
+} from '../../libs/dto/member/member.input';
 import { Message } from '../../libs/enums/common.enum';
 import { AuthService } from '../auth/auth.service';
-import { MemberStatus } from '../../libs/enums/member.enum';
-import { MemberUpdate } from '../../libs/dto/member/member.update';
+import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
+import { MemberUpdate, MemberUpdateByAdmin } from '../../libs/dto/member/member.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
 @Injectable()
@@ -88,6 +94,48 @@ export class MemberService {
 			this.memberModel
 				.find(query)
 				.select('-memberPassword') // Never return password
+				.skip((page - 1) * limit)
+				.limit(limit)
+				.sort({ [sort]: direction })
+				.lean()
+				.exec(),
+			this.memberModel.countDocuments(query),
+		]);
+
+		return {
+			members,
+			metaData: {
+				total,
+				page,
+				limit,
+			},
+		};
+	}
+
+	// ! Get Brands (Paginated List)
+	public async getBrands(memberId: string | null, input: BrandInquiry): Promise<MembersData> {
+		const { page, limit, sort = 'createdAt', direction = -1, search } = input;
+
+		const query: any = {
+			memberType: MemberType.BRAND,
+			memberStatus: { $ne: MemberStatus.DELETE },
+		};
+
+		if (search.memberStatus) {
+			query.memberStatus = search.memberStatus;
+		}
+
+		if (search.text) {
+			query.$or = [
+				{ memberNick: { $regex: search.text, $options: 'i' } },
+				{ memberEmail: { $regex: search.text, $options: 'i' } },
+			];
+		}
+
+		const [members, total] = await Promise.all([
+			this.memberModel
+				.find(query)
+				.select('-memberPassword')
 				.skip((page - 1) * limit)
 				.limit(limit)
 				.sort({ [sort]: direction })
@@ -188,8 +236,8 @@ export class MemberService {
 	}
 
 	// ! Admin: Update Member (can update any field including status)
-	public async updateMemberByAdmin(memberId: string, input: MemberUpdate): Promise<Member> {
-		// Remove _id from input if present
+	public async updateMemberByAdmin(input: MemberUpdateByAdmin): Promise<Member> {
+		const memberId = input._id;
 		delete input._id;
 
 		// If changing status to DELETE, set deletedAt

@@ -4,7 +4,7 @@ import { CouponStatus } from '../../enums/coupons.enum';
 import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enum';
 
 @InputType()
-export class MemberUpdate {
+export class MemberUpdateByAdmin {
 	@IsMongoId()
 	@Field(() => String)
 	_id: string;
@@ -161,4 +161,53 @@ export class MemberUpdate {
 	@IsDate()
 	@Field(() => Date, { nullable: true })
 	deletedAt?: Date;
+}
+
+@InputType()
+export class MemberUpdate {
+	@IsMongoId()
+	@Field(() => String)
+	_id: string;
+
+	@IsOptional()
+	@IsEnum(MemberAuthType)
+	@Field(() => MemberAuthType, { nullable: true })
+	memberAuthType?: MemberAuthType;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	memberPhone?: string;
+
+	@IsOptional()
+	@IsString()
+	@Length(3, 12)
+	@Field(() => String, { nullable: true })
+	memberNick?: string;
+
+	@IsOptional()
+	@IsString()
+	@Length(3, 100)
+	@Field(() => String, { nullable: true })
+	memberFullName?: string;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	memberEmail?: string;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	memberImage?: string;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	memberAddress?: string;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	memberDesc?: string;
 }
