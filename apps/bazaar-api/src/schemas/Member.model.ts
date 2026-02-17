@@ -94,7 +94,7 @@ const MemberSchema = new Schema(
 		},
 		memberCouponId: {
 			type: Schema.Types.ObjectId,
-			required: true,
+			required: false,
 		},
 		memberCouponStatus: {
 			type: String,

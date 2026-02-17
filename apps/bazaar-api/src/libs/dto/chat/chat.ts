@@ -1,5 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ChatStatus } from '../../enums/chat.enum';
+import { Member } from '../member/member';
+import { Brand } from '../brand/brand';
 
 @ObjectType()
 export class Chat {
@@ -23,4 +25,11 @@ export class Chat {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
+
+	@Field(() => Brand, { nullable: true })
+	brand?: Brand;
 }

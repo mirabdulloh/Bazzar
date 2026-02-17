@@ -1,5 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { NotificationGroup, NotificationStatus, NotificationType } from '../../enums/notification.enum';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class Notification {
@@ -44,4 +45,14 @@ export class Notification {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
+
+	@Field(() => Member, { nullable: true })
+	author?: Member;
+
+	@Field(() => Member, { nullable: true })
+	receiver?: Member;
 }

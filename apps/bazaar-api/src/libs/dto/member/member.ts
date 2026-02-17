@@ -67,8 +67,10 @@ export class Member {
 	@Field(() => Int)
 	memberBlocks: number;
 
-	@Field(() => String)
-	memberCouponId: string;
+	@Field(() => String, { nullable: true })
+	memberCouponId?: string;
+
+	memberPassword?: string;
 
 	@Field(() => CouponStatus)
 	memberCouponStatus: CouponStatus;
@@ -93,4 +95,28 @@ export class Member {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	@Field(() => String, { nullable: true })
+	accessToken?: string;
+}
+
+@ObjectType()
+export class MetaData {
+	@Field(() => Int)
+	total: number;
+
+	@Field(() => Int)
+	page: number;
+
+	@Field(() => Int)
+	limit: number;
+}
+
+@ObjectType()
+export class MembersData {
+	@Field(() => [Member])
+	members: Member[];
+
+	@Field(() => MetaData)
+	metaData: MetaData;
 }

@@ -1,5 +1,8 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { ProductStatus, ProductType } from '../../enums/products.enum';
+import { Member } from '../member/member';
+import { Brand } from '../brand/brand';
+import { Category } from '../category/category';
 
 @ObjectType()
 export class Product {
@@ -71,4 +74,14 @@ export class Product {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
+
+	@Field(() => Brand, { nullable: true })
+	brand?: Brand;
+
+	@Field(() => Category, { nullable: true })
+	category?: Category;
 }

@@ -1,4 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { Chat } from '../chat/chat';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class MessageChat {
@@ -28,4 +30,11 @@ export class MessageChat {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Chat, { nullable: true })
+	conversation?: Chat;
+
+	@Field(() => Member, { nullable: true })
+	sender?: Member;
 }

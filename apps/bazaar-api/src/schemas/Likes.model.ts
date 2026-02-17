@@ -1,10 +1,11 @@
 import { Schema } from 'mongoose';
+import { LikeGroup } from '../libs/enums/likes.enum';
 
 const LikeSchema = new Schema(
 	{
 		likeGroup: {
 			type: String,
-			enum: [],
+			enum: LikeGroup,
 			required: true,
 		},
 

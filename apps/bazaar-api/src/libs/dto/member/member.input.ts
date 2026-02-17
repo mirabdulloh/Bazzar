@@ -132,3 +132,18 @@ export class MembersInquiry {
 	@Field(() => MISearch)
 	search: MISearch;
 }
+
+@InputType()
+export class ChangePasswordInput {
+	@IsNotEmpty()
+	@IsString()
+	@Length(5, 12)
+	@Field(() => String)
+	oldPassword: string;
+
+	@IsNotEmpty()
+	@IsString()
+	@Length(5, 12)
+	@Field(() => String)
+	newPassword: string;
+}

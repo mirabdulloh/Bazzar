@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class Follow {
@@ -16,4 +17,11 @@ export class Follow {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	following?: Member;
+
+	@Field(() => Member, { nullable: true })
+	follower?: Member;
 }

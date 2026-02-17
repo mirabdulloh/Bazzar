@@ -1,5 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ViewGroup } from '../../enums/view.enum';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class View {
@@ -20,4 +21,8 @@ export class View {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
 }

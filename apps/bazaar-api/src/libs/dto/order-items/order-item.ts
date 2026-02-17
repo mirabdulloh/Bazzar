@@ -1,4 +1,6 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Order } from '../order/order';
+import { Product } from '../product/product';
 
 @ObjectType()
 export class OrderItem {
@@ -25,4 +27,11 @@ export class OrderItem {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Order, { nullable: true })
+	order?: Order;
+
+	@Field(() => Product, { nullable: true })
+	product?: Product;
 }

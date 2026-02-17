@@ -1,5 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { LikeGroup } from '../../enums/likes.enum';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class Like {
@@ -20,4 +21,8 @@ export class Like {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
 }

@@ -23,4 +23,11 @@ export class Category {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Category, { nullable: true })
+	parentCategory?: Category;
+
+	@Field(() => [Category], { nullable: true })
+	subCategories?: Category[];
 }

@@ -1,5 +1,6 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { CommentGroup, CommentStatus } from '../../enums/comments.enum';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class Comment {
@@ -35,4 +36,11 @@ export class Comment {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
+
+	@Field(() => Comment, { nullable: true })
+	parentComment?: Comment;
 }

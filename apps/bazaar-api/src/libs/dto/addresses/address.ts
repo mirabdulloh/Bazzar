@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class Address {
@@ -37,4 +38,8 @@ export class Address {
 
 	@Field(() => Date)
 	updatedAt: Date;
+
+	// ** Relationship Fields **
+	@Field(() => Member, { nullable: true })
+	member?: Member;
 }
