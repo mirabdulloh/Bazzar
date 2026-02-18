@@ -109,7 +109,7 @@ export class MemberResolver {
 	}
 
 	@Roles(MemberType.ADMIN)
-	@UseGuards(RolesGuard)
+	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => MembersData)
 	public async getAllMembersByAdmin(@Args('input') input: MembersInquiry): Promise<MembersData> {
 		console.log('Query: getMembersByAdmin');

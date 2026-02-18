@@ -122,34 +122,7 @@ export class ProductInput {
 	productMaterials?: string;
 }
 
-@InputType()
-export class ProductsInquiry {
-	@IsNotEmpty()
-	@IsInt()
-	@Min(1)
-	@Field(() => Int)
-	page: number;
-
-	@IsNotEmpty()
-	@IsInt()
-	@Min(1)
-	@Field(() => Int)
-	limit: number;
-
-	@IsOptional()
-	@IsIn(availableProductSorts)
-	@Field(() => String, { nullable: true })
-	sort?: string;
-
-	@IsOptional()
-	@IsEnum(Direction)
-	@Field(() => Direction, { nullable: true })
-	direction?: Direction;
-
-	@IsOptional()
-	@Field(() => ProductsSearch, { nullable: true })
-	search?: ProductsSearch;
-}
+// ! Search classes MUST be defined BEFORE inquiry classes that reference them
 
 @InputType()
 export class ProductsSearch {
@@ -182,6 +155,35 @@ export class ProductsSearch {
 	@IsString()
 	@Field(() => String, { nullable: true })
 	text?: string;
+}
+
+@InputType()
+export class ProductsInquiry {
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableProductSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => ProductsSearch, { nullable: true })
+	search?: ProductsSearch;
 }
 
 @InputType()

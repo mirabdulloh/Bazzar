@@ -1,8 +1,7 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { ProductStatus, ProductType } from '../../enums/products.enum';
-import { Member } from '../member/member';
-import { Brand } from '../brand/brand';
-import { Category } from '../category/category';
+import { Member, MetaData } from '../member/member';
+import { MeLiked } from '../likes/like';
 
 @ObjectType()
 export class Product {
@@ -77,13 +76,10 @@ export class Product {
 
 	// ** Relationship Fields **
 	@Field(() => Member, { nullable: true })
-	member?: Member;
+	memberData?: Member;
 
-	@Field(() => Brand, { nullable: true })
-	brand?: Brand;
-
-	@Field(() => Category, { nullable: true })
-	category?: Category;
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 }
 
 @ObjectType()
@@ -93,16 +89,4 @@ export class ProductsData {
 
 	@Field(() => MetaData)
 	metaData: MetaData;
-}
-
-@ObjectType()
-export class MetaData {
-	@Field(() => Int)
-	total: number;
-
-	@Field(() => Int)
-	page: number;
-
-	@Field(() => Int)
-	limit: number;
 }
