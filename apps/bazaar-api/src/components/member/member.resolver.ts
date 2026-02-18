@@ -66,7 +66,7 @@ export class MemberResolver {
 	@Query(() => MembersData)
 	public async getBrands(
 		@Args('input') input: BrandInquiry,
-		@AuthMember('_id') memberId?: string,
+		@AuthMember('_id') memberId?: ObjectId,
 	): Promise<MembersData> {
 		console.log('Query: getBrands');
 		return await this.memberService.getBrands(memberId ?? null, input);
@@ -91,7 +91,6 @@ export class MemberResolver {
 		const likeRefId = shapeIntoMongoObjectId(input);
 		return await this.memberService.likeTargetMember(memberId, likeRefId);
 	}
-
 	// ! Admin: Update Member (can update any field including status)
 	@Mutation(() => Member)
 	@Roles(MemberType.ADMIN)

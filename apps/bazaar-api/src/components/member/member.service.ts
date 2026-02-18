@@ -19,7 +19,7 @@ import { Direction, Message } from '../../libs/enums/common.enum';
 import { AuthService } from '../auth/auth.service';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { MemberUpdate, MemberUpdateByAdmin } from '../../libs/dto/member/member.update';
-import { shapeIntoMongoObjectId } from '../../libs/config';
+import { lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/config';
 import { StatisticModifier, T } from '../../libs/types/common';
 import { LikeInput } from '../../libs/dto/likes/like.input';
 import { LikeGroup } from '../../libs/enums/likes.enum';
@@ -117,59 +117,37 @@ export class MemberService {
 	// }
 
 	// ! Get Brands (Paginated List)
-	public async getBrands(memberId: string | null, input: BrandInquiry): Promise<MembersData> {
-		const { page, limit, sort = 'createdAt', direction = -1, search } = input;
-
-		// same logic as your query
-		const match: any = {
-			memberType: MemberType.BRAND,
-			memberStatus: { $ne: MemberStatus.DELETE },
-		};
-
-		if (search?.memberStatus) {
-			match.memberStatus = search.memberStatus;
-		}
-
-		if (search?.text) {
-			match.$or = [
-				{ memberNick: { $regex: search.text, $options: 'i' } },
-				{ memberEmail: { $regex: search.text, $options: 'i' } },
-			];
-		}
-
-		const sortStage: any = { [sort]: direction };
+	public async getBrands(memberId: ObjectId, input: BrandInquiry): Promise<MembersData> {
+		console.log('MemberService: getAgents');
+		const { text } = input.search;
+		const match: T = { memberType: MemberType.BRAND, memberStatus: MemberStatus.ACTIVE };
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+		if (text) match.memberNick = { $regex: new RegExp(text, 'i') };
+		console.log('match =>', match);
 
 		const result = await this.memberModel.aggregate([
 			{ $match: match },
-			{ $sort: sortStage },
+			{ $sort: sort },
 			{
 				$facet: {
-					members: [
-						{ $skip: (page - 1) * limit },
-						{ $limit: limit },
-						{ $project: { memberPassword: 0 } }, // same as .select('-memberPassword')
-					],
+					list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }, lookupAuthMemberLiked(memberId)],
 					metaCounter: [{ $count: 'total' }],
 				},
 			},
-			{
-				$addFields: {
-					total: { $ifNull: [{ $arrayElemAt: ['$metaCounter.total', 0] }, 0] },
-				},
-			},
-			{
-				$project: {
-					members: 1,
-					metaData: {
-						total: '$total',
-						page: { $literal: page },
-						limit: { $literal: limit },
-					},
-				},
-			},
 		]);
+		console.log('getAgents Result =>', result);
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		const list = result[0]?.list ?? [];
+		const total = result[0]?.metaCounter?.[0]?.total ?? 0;
 
-		return result?.[0] ?? { members: [], metaData: { total: 0, page, limit } };
+		return {
+			members: list,
+			metaData: {
+				total,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
 	}
 
 	// ! Get Single Member by ID

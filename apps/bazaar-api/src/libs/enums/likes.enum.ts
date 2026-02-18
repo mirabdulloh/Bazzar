@@ -4,6 +4,7 @@ export enum LikeGroup {
 	PRODUCT = 'PRODUCT',
 	ARTICLE = 'ARTICLE',
 	MEMBER = 'MEMBER',
+	BRAND = 'BRAND',
 	REVIEW = 'REVIEW',
 	COMMENT = 'COMMENT',
 }
