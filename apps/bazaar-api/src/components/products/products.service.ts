@@ -36,7 +36,7 @@ export class ProductsService {
 			// increment memberProducts stat
 			await this.memberService.memberStatsEdits({
 				_id: shapeIntoMongoObjectId(input.memberId),
-				targetKey: 'memberArticles',
+				targetKey: 'memberProducts',
 				modifier: 1,
 			});
 			return result;

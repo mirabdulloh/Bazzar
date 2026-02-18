@@ -17,21 +17,24 @@ import { Direction } from '../../enums/common.enum';
 
 @InputType()
 export class ProductInput {
+	@IsOptional()
 	@IsMongoId()
-	@Field(() => String)
-	memberId: string;
+	@Field(() => String, { nullable: true })
+	memberId?: string;
 
 	@IsEnum(ProductType)
 	@Field(() => ProductType)
 	productType: ProductType;
 
+	@IsOptional()
 	@IsMongoId()
-	@Field(() => String)
-	productBrandId: string;
+	@Field(() => String, { nullable: true })
+	productBrandId?: string;
 
+	@IsOptional()
 	@IsMongoId()
-	@Field(() => String)
-	productCategoryId: string;
+	@Field(() => String, { nullable: true })
+	productCategoryId?: string;
 
 	@IsOptional()
 	@IsEnum(ProductStatus)

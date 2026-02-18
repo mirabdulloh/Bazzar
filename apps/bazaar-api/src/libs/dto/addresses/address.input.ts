@@ -3,9 +3,10 @@ import { IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-va
 
 @InputType()
 export class AddressInput {
+	@IsOptional()
 	@IsMongoId()
-	@Field(() => String)
-	memberId: string;
+	@Field(() => String, { nullable: true })
+	memberId?: string;
 
 	@IsNotEmpty()
 	@IsString()

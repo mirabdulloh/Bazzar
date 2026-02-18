@@ -14,11 +14,11 @@ export class Product {
 	@Field(() => ProductType)
 	productType: ProductType;
 
-	@Field(() => String)
-	productBrandId: string;
+	@Field(() => String, { nullable: true })
+	productBrandId?: string;
 
-	@Field(() => String)
-	productCategoryId: string;
+	@Field(() => String, { nullable: true })
+	productCategoryId?: string;
 
 	@Field(() => ProductStatus)
 	productStatus: ProductStatus;

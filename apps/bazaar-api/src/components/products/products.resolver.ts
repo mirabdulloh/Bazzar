@@ -41,6 +41,7 @@ export class ProductsResolver {
 	): Promise<Product> {
 		console.log('Mutation: createProduct');
 		input.memberId = memberId.toString();
+		input.productBrandId = memberId.toString();
 		return await this.productsService.createProduct(input);
 	}
 

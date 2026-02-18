@@ -16,12 +16,10 @@ const ProductSchema = new Schema(
 
 		productBrandId: {
 			type: Schema.Types.ObjectId,
-			required: true,
 		},
 
 		productCategoryId: {
 			type: Schema.Types.ObjectId,
-			required: true,
 		},
 
 		productStatus: {
