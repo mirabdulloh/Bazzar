@@ -1,18 +1,19 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum, IsMongoId } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 import { LikeGroup } from '../../enums/likes.enum';
+import { ObjectId } from 'mongoose';
 
 @InputType()
 export class LikeInput {
-	@IsEnum(LikeGroup)
+	@IsNotEmpty()
+	@Field(() => String)
+	memberId: ObjectId;
+
+	@IsNotEmpty()
+	@Field(() => String)
+	likeRefId: ObjectId;
+
+	@IsNotEmpty()
 	@Field(() => LikeGroup)
 	likeGroup: LikeGroup;
-
-	@IsMongoId()
-	@Field(() => String)
-	likeRefId: string;
-
-	@IsMongoId()
-	@Field(() => String)
-	memberId: string;
 }

@@ -85,3 +85,24 @@ export class Product {
 	@Field(() => Category, { nullable: true })
 	category?: Category;
 }
+
+@ObjectType()
+export class ProductsData {
+	@Field(() => [Product])
+	products: Product[];
+
+	@Field(() => MetaData)
+	metaData: MetaData;
+}
+
+@ObjectType()
+export class MetaData {
+	@Field(() => Int)
+	total: number;
+
+	@Field(() => Int)
+	page: number;
+
+	@Field(() => Int)
+	limit: number;
+}

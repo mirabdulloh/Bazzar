@@ -1,6 +1,19 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+	IsArray,
+	IsEnum,
+	IsIn,
+	IsInt,
+	IsMongoId,
+	IsNotEmpty,
+	IsNumber,
+	IsOptional,
+	IsString,
+	Min,
+} from 'class-validator';
 import { ProductStatus, ProductType } from '../../enums/products.enum';
+import { availableProductSorts } from '../../config';
+import { Direction } from '../../enums/common.enum';
 
 @InputType()
 export class ProductInput {
@@ -107,4 +120,162 @@ export class ProductInput {
 	@IsString()
 	@Field(() => String, { nullable: true })
 	productMaterials?: string;
+}
+
+@InputType()
+export class ProductsInquiry {
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableProductSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => ProductsSearch, { nullable: true })
+	search?: ProductsSearch;
+}
+
+@InputType()
+export class ProductsSearch {
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	memberId?: string;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	productBrandId?: string;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	productCategoryId?: string;
+
+	@IsOptional()
+	@IsEnum(ProductType, { each: true })
+	@Field(() => [ProductType], { nullable: true })
+	productTypeList?: ProductType[];
+
+	@IsOptional()
+	@IsEnum(ProductStatus)
+	@Field(() => ProductStatus, { nullable: true })
+	productStatus?: ProductStatus;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+@InputType()
+class BrandProductsSearch {
+	@IsOptional()
+	@IsEnum(ProductStatus)
+	@Field(() => ProductStatus, { nullable: true })
+	productStatus?: ProductStatus;
+}
+
+@InputType()
+export class BrandProductsInquiry {
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableProductSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsNotEmpty()
+	@Field(() => BrandProductsSearch)
+	search: BrandProductsSearch;
+}
+
+@InputType()
+class AllProductsSearch {
+	@IsOptional()
+	@IsEnum(ProductStatus)
+	@Field(() => ProductStatus, { nullable: true })
+	productStatus?: ProductStatus;
+
+	@IsOptional()
+	@IsEnum(ProductType, { each: true })
+	@Field(() => [ProductType], { nullable: true })
+	productTypeList?: ProductType[];
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	productBrandId?: string;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	productCategoryId?: string;
+}
+
+@InputType()
+export class AllProductsInquiry {
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableProductSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsNotEmpty()
+	@Field(() => AllProductsSearch)
+	search: AllProductsSearch;
+}
+
+@InputType()
+export class OrdinaryInquiry {
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
 }

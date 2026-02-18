@@ -13,6 +13,15 @@ export const availablePropertySorts = [
 	'propertyPrice',
 ];
 
+export const availableProductSorts = [
+	'createdAt',
+	'updatedAt',
+	'productLikes',
+	'productViews',
+	'productRank',
+	'productPrice',
+];
+
 export const availableBoardArticleSorts = ['createdAt', 'updatedAt', 'articleLikes', 'articleViews'];
 export const availableCommentSorts = ['createdAt', 'updatedAt'];
 //! IMAGE CONFIGURATION (config.js)

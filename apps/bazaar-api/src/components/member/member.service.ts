@@ -5,7 +5,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException,
 } from '@nestjs/common';
-import { Model } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
 import { InjectModel } from '@nestjs/mongoose';
 import {
@@ -20,13 +20,18 @@ import { AuthService } from '../auth/auth.service';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { MemberUpdate, MemberUpdateByAdmin } from '../../libs/dto/member/member.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
-import { T } from '../../libs/types/common';
+import { StatisticModifier, T } from '../../libs/types/common';
+import { LikeInput } from '../../libs/dto/likes/like.input';
+import { LikeGroup } from '../../libs/enums/likes.enum';
+import { LikeService } from '../like/like.service';
 
 @Injectable()
 export class MemberService {
 	constructor(
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		private authService: AuthService,
+		private likeService: LikeService,
+		// private viewService: ViewService,
 	) {}
 
 	// ! Sing Up
@@ -66,8 +71,6 @@ export class MemberService {
 		return response;
 	}
 
-	// // ! Get Members (Paginated List)
-	// public async getMembers(input: MembersInquiry): Promise<MembersData> {
 	// 	const { page, limit, sort = 'createdAt', direction = -1, search } = input;
 
 	// 	const query: any = {};
@@ -250,6 +253,20 @@ export class MemberService {
 		return result;
 	}
 
+	// ! Like Target Member
+	public async likeTargetMember(memberId: ObjectId, likeRefId: ObjectId): Promise<Member> {
+		const target: Member = await this.memberModel.findOne({ _id: likeRefId, memberStatus: MemberStatus.ACTIVE }).exec();
+		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		const input: LikeInput = { memberId, likeRefId, likeGroup: LikeGroup.MEMBER };
+		// LIke TOggle
+
+		const modifier: number = await this.likeService.toggleLike(input);
+		const result = await this.memberStatsEdits({ _id: likeRefId, targetKey: 'memberLikes', modifier: modifier });
+		if (!result) throw new InternalServerErrorException(Message.SOMETHING_WENT_WRONG);
+		return result;
+	}
+
 	// ! Admin: Update Member (can update any field including status)
 	public async updateMemberByAdmin(input: MemberUpdateByAdmin): Promise<Member> {
 		const memberId = input._id;
@@ -329,5 +346,11 @@ export class MemberService {
 				limit: input.limit,
 			},
 		};
+	}
+
+	public async memberStatsEdits(input: StatisticModifier): Promise<Member> {
+		console.log('Executed');
+		const { _id, targetKey, modifier } = input;
+		return await this.memberModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
 	}
 }
