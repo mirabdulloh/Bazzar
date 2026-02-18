@@ -1,9 +1,4 @@
-import {
-	BadRequestException,
-	Injectable,
-	InternalServerErrorException,
-	NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Order, OrdersData } from '../../libs/dto/order/order';
@@ -42,9 +37,7 @@ export class OrderService {
 
 		for (const item of items) {
 			const productId = shapeIntoMongoObjectId(item.productId);
-			const product = await this.productModel
-				.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE })
-				.exec();
+			const product = await this.productModel.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE }).exec();
 
 			if (!product) throw new BadRequestException(`Product ${item.productId} not found or not active`);
 			if (product.productStockQuantity < item.itemQuantity) {

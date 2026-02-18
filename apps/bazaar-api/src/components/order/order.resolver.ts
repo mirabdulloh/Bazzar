@@ -43,10 +43,7 @@ export class OrderResolver {
 	// ! Get Single Order
 	@UseGuards(AuthGuard)
 	@Query(() => Order)
-	public async getOrder(
-		@Args('orderId') input: string,
-		@AuthMember('_id') memberId: ObjectId,
-	): Promise<Order> {
+	public async getOrder(@Args('orderId') input: string, @AuthMember('_id') memberId: ObjectId): Promise<Order> {
 		console.log('Query: getOrder');
 		const orderId = shapeIntoMongoObjectId(input);
 		return await this.orderService.getOrder(memberId, orderId);
