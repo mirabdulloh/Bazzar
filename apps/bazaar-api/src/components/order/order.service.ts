@@ -1,0 +1,340 @@
+import {
+	BadRequestException,
+	Injectable,
+	InternalServerErrorException,
+	NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, ObjectId } from 'mongoose';
+import { Order, OrdersData } from '../../libs/dto/order/order';
+import { CreateOrderInput, AllOrdersInquiry, MyOrdersInquiry } from '../../libs/dto/order/order.input';
+import { OrderUpdate } from '../../libs/dto/order/order.update';
+import { OrderItem } from '../../libs/dto/order-items/order-item';
+import { Product } from '../../libs/dto/product/product';
+import { Direction, Message } from '../../libs/enums/common.enum';
+import { ProductStatus } from '../../libs/enums/products.enum';
+import { OrderStatus } from '../../libs/enums/order.enum';
+import { shapeIntoMongoObjectId } from '../../libs/config';
+import { T } from '../../libs/types/common';
+import { MemberService } from '../member/member.service';
+import { ProductsService } from '../products/products.service';
+
+@Injectable()
+export class OrderService {
+	constructor(
+		@InjectModel('Order') private readonly orderModel: Model<Order>,
+		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,
+		@InjectModel('Product') private readonly productModel: Model<Product>,
+		private readonly memberService: MemberService,
+		private readonly productsService: ProductsService,
+	) {}
+
+	// ! CREATE ORDER
+	public async createOrder(memberId: ObjectId, input: CreateOrderInput): Promise<Order> {
+		const { orderDeliveryAddressId, orderPaymentMethod, items } = input;
+
+		if (!items.length) throw new BadRequestException('Order must have at least one item');
+
+		// 1. Validate products and get current prices
+		let orderTotalPrice = 0;
+		const orderItemsData: { productId: ObjectId; priceAtPurchase: number; itemQuantity: number; subtotal: number }[] =
+			[];
+
+		for (const item of items) {
+			const productId = shapeIntoMongoObjectId(item.productId);
+			const product = await this.productModel
+				.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE })
+				.exec();
+
+			if (!product) throw new BadRequestException(`Product ${item.productId} not found or not active`);
+			if (product.productStockQuantity < item.itemQuantity) {
+				throw new BadRequestException(
+					`Insufficient stock for ${product.productTitle}. Available: ${product.productStockQuantity}`,
+				);
+			}
+
+			const priceAtPurchase = product.productDiscountPrice > 0 ? product.productDiscountPrice : product.productPrice;
+			const subtotal = priceAtPurchase * item.itemQuantity;
+			orderTotalPrice += subtotal;
+
+			orderItemsData.push({
+				productId,
+				priceAtPurchase,
+				itemQuantity: item.itemQuantity,
+				subtotal,
+			});
+		}
+
+		try {
+			// 2. Create the order
+			const orderData: T = {
+				memberId,
+				orderTotalPrice,
+				orderTotalDiscountPrice: 0,
+				orderFinalPrice: orderTotalPrice,
+				orderDeliveryAddressId: shapeIntoMongoObjectId(orderDeliveryAddressId),
+			};
+			if (orderPaymentMethod) orderData.orderPaymentMethod = orderPaymentMethod;
+
+			const createdOrder = await this.orderModel.create(orderData);
+
+			// 3. Create order items
+			const orderItems = orderItemsData.map((itemData) => ({
+				orderId: createdOrder._id,
+				productId: itemData.productId,
+				priceAtPurchase: itemData.priceAtPurchase,
+				itemQuantity: itemData.itemQuantity,
+				subtotal: itemData.subtotal,
+			}));
+			await this.orderItemModel.insertMany(orderItems);
+
+			// 4. Decrement product stock
+			for (const itemData of orderItemsData) {
+				await this.productsService.productStatsEdits({
+					_id: itemData.productId,
+					targetKey: 'productStockQuantity',
+					modifier: -itemData.itemQuantity,
+				});
+			}
+
+			// 5. Update member points (optional reward)
+			await this.memberService.memberStatsEdits({
+				_id: memberId,
+				targetKey: 'memberPoints',
+				modifier: Math.floor(orderTotalPrice * 0.01), // 1% points reward
+			});
+
+			return createdOrder;
+		} catch (err) {
+			console.log('Error on createOrder Service', err.message);
+			throw new BadRequestException(Message.CREATE_FAILED);
+		}
+	}
+
+	// ! GET SINGLE ORDER (with items, member, address lookups)
+	public async getOrder(memberId: ObjectId, orderId: ObjectId): Promise<Order> {
+		const result = await this.orderModel
+			.aggregate([
+				{ $match: { _id: orderId, memberId: memberId } },
+				// Lookup order items
+				{
+					$lookup: {
+						from: 'orderItems',
+						localField: '_id',
+						foreignField: 'orderId',
+						as: 'orderItems',
+					},
+				},
+				// Lookup product data for each order item
+				{
+					$lookup: {
+						from: 'products',
+						localField: 'orderItems.productId',
+						foreignField: '_id',
+						as: 'productDetails',
+					},
+				},
+				// Lookup delivery address
+				{
+					$lookup: {
+						from: 'addresses',
+						localField: 'orderDeliveryAddressId',
+						foreignField: '_id',
+						as: 'deliveryAddress',
+					},
+				},
+				{ $unwind: { path: '$deliveryAddress', preserveNullAndEmptyArrays: true } },
+				// Lookup member data
+				{
+					$lookup: {
+						from: 'members',
+						localField: 'memberId',
+						foreignField: '_id',
+						as: 'member',
+					},
+				},
+				{ $unwind: { path: '$member', preserveNullAndEmptyArrays: true } },
+				// Merge product data into order items
+				{
+					$addFields: {
+						orderItems: {
+							$map: {
+								input: '$orderItems',
+								as: 'item',
+								in: {
+									$mergeObjects: [
+										'$$item',
+										{
+											product: {
+												$arrayElemAt: [
+													{
+														$filter: {
+															input: '$productDetails',
+															as: 'prod',
+															cond: { $eq: ['$$prod._id', '$$item.productId'] },
+														},
+													},
+													0,
+												],
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				{ $project: { productDetails: 0 } },
+			])
+			.exec();
+
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return result[0];
+	}
+
+	// ! GET MY ORDERS (paginated)
+	public async getMyOrders(memberId: ObjectId, input: MyOrdersInquiry): Promise<OrdersData> {
+		const match: T = { memberId: memberId };
+
+		if (input.search?.orderStatus) {
+			match.orderStatus = input.search.orderStatus;
+		}
+
+		const result = await this.orderModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: { createdAt: -1 } },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							// Lookup order items
+							{
+								$lookup: {
+									from: 'orderItems',
+									localField: '_id',
+									foreignField: 'orderId',
+									as: 'orderItems',
+								},
+							},
+							// Lookup delivery address
+							{
+								$lookup: {
+									from: 'addresses',
+									localField: 'orderDeliveryAddressId',
+									foreignField: '_id',
+									as: 'deliveryAddress',
+								},
+							},
+							{ $unwind: { path: '$deliveryAddress', preserveNullAndEmptyArrays: true } },
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		return {
+			orders: result[0].list,
+			metaData: {
+				total: result[0].metaCounter[0]?.total ?? 0,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
+	}
+
+	// ! UPDATE ORDER BY ADMIN
+	public async updateOrderByAdmin(input: OrderUpdate): Promise<Order> {
+		const orderId = shapeIntoMongoObjectId(input._id);
+		delete input._id;
+
+		const result = await this.orderModel.findByIdAndUpdate(orderId, input, { new: true }).exec();
+		if (!result) throw new NotFoundException(Message.UPDATE_FAILED);
+
+		// If order is cancelled, restore stock
+		if (input.orderStatus === OrderStatus.CANCELLED) {
+			const orderItems = await this.orderItemModel.find({ orderId }).exec();
+			for (const item of orderItems) {
+				await this.productsService.productStatsEdits({
+					_id: item.productId as unknown as ObjectId,
+					targetKey: 'productStockQuantity',
+					modifier: item.itemQuantity,
+				});
+			}
+		}
+
+		return result;
+	}
+
+	// ! GET ALL ORDERS BY ADMIN (paginated)
+	public async getAllOrdersByAdmin(input: AllOrdersInquiry): Promise<OrdersData> {
+		const match: T = {};
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
+		if (input.search) {
+			if (input.search.orderStatus) match.orderStatus = input.search.orderStatus;
+			if (input.search.orderPaymentStatus) match.orderPaymentStatus = input.search.orderPaymentStatus;
+			if (input.search.memberId) match.memberId = shapeIntoMongoObjectId(input.search.memberId);
+		}
+
+		const result = await this.orderModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							// Lookup order items
+							{
+								$lookup: {
+									from: 'orderItems',
+									localField: '_id',
+									foreignField: 'orderId',
+									as: 'orderItems',
+								},
+							},
+							// Lookup member
+							{
+								$lookup: {
+									from: 'members',
+									localField: 'memberId',
+									foreignField: '_id',
+									as: 'member',
+								},
+							},
+							{ $unwind: { path: '$member', preserveNullAndEmptyArrays: true } },
+							// Lookup delivery address
+							{
+								$lookup: {
+									from: 'addresses',
+									localField: 'orderDeliveryAddressId',
+									foreignField: '_id',
+									as: 'deliveryAddress',
+								},
+							},
+							{ $unwind: { path: '$deliveryAddress', preserveNullAndEmptyArrays: true } },
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		return {
+			orders: result[0].list,
+			metaData: {
+				total: result[0].metaCounter[0]?.total ?? 0,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
+	}
+}

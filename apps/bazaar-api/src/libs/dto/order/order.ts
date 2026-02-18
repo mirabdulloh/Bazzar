@@ -1,6 +1,6 @@
 import { Field, Float, ObjectType } from '@nestjs/graphql';
 import { OrderDeliveryStatus, OrderPaymentMethod, OrderPaymentStatus, OrderStatus } from '../../enums/order.enum';
-import { Member } from '../member/member';
+import { Member, MetaData } from '../member/member';
 import { Address } from '../addresses/address';
 import { OrderItem } from '../order-items/order-item';
 
@@ -51,4 +51,13 @@ export class Order {
 
 	@Field(() => [OrderItem], { nullable: true })
 	orderItems?: OrderItem[];
+}
+
+@ObjectType()
+export class OrdersData {
+	@Field(() => [Order])
+	orders: Order[];
+
+	@Field(() => MetaData)
+	metaData: MetaData;
 }
