@@ -5,8 +5,9 @@ import { AddressesModule } from './addresses/addresses.module';
 import { OrderModule } from './order/order.module';
 import { OrderItmesModule } from './order-itmes/order-itmes.module';
 import { LikeModule } from './like/like.module';
+import { ViewModule } from './view/view.module';
 
 @Module({
-  imports: [MemberModule, ProductsModule, AddressesModule, OrderModule, OrderItmesModule, LikeModule]
+  imports: [MemberModule, ProductsModule, AddressesModule, OrderModule, OrderItmesModule, LikeModule, ViewModule]
 })
 export class ComponentsModule {}

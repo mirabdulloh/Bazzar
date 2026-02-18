@@ -24,6 +24,8 @@ import { StatisticModifier, T } from '../../libs/types/common';
 import { LikeInput } from '../../libs/dto/likes/like.input';
 import { LikeGroup } from '../../libs/enums/likes.enum';
 import { LikeService } from '../like/like.service';
+import { ViewGroup } from '../../libs/enums/view.enum';
+import { ViewService } from '../view/view.service';
 
 @Injectable()
 export class MemberService {
@@ -31,7 +33,7 @@ export class MemberService {
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		private authService: AuthService,
 		private likeService: LikeService,
-		// private viewService: ViewService,
+		private viewService: ViewService,
 	) {}
 
 	// ! Sing Up
@@ -139,9 +141,6 @@ export class MemberService {
 		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 		const list = result[0]?.list ?? [];
 		const total = result[0]?.metaCounter?.[0]?.total ?? 0;
-		// ! VIew Count +1
-		// ! MeLiked
-		// ! MeFollowed
 		return {
 			members: list,
 			metaData: {
@@ -153,24 +152,38 @@ export class MemberService {
 	}
 
 	// ! Get Single Member by ID
-	public async getMember(memberId: string): Promise<Member> {
-		const member = await this.memberModel
-			.findOne({
-				_id: shapeIntoMongoObjectId(memberId),
-				memberStatus: { $ne: MemberStatus.DELETE },
-			})
-			.select('-memberPassword')
-			.lean()
-			.exec();
+	public async getMember(memberId: ObjectId | null, targetId: ObjectId): Promise<Member> {
+		const search: T = {
+			_id: targetId,
+			memberStatus: {
+				$in: [MemberStatus.ACTIVE, MemberStatus.BLOCK],
+			},
+		};
 
-		if (!member) {
-			throw new NotFoundException(Message.NO_DATA_FOUND);
+		const targetMember = await this.memberModel.findOne(search).lean().exec();
+		if (!targetMember) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		if (memberId) {
+			const viewInput = {
+				memberId: memberId,
+				viewRefId: targetId,
+				viewGroup: ViewGroup.MEMBER,
+			};
+
+			const newView = await this.viewService.recordView(viewInput);
+			if (newView) {
+				await this.memberModel.findOneAndUpdate(search, { $inc: { memberViews: 1 } }, { new: true }).exec();
+
+				targetMember.memberViews++;
+			}
+			// //! MeLIked
+			// const likeInput = { memberId, likeRefId: targetId, likeGroup: LikeGroup.MEMBER };
+			// targetMember.meLiked = await this.likeService.checkLikeExistence(likeInput);
+			// //! MeFollowed
+			// targetMember.meFollowed = await this.checkSubscription(memberId, targetId);
 		}
-		// ! VIew Count +1
-		// ! MeLiked
-		// ! MeFollowed
 
-		return member;
+		return targetMember;
 	}
 
 	// ! Get Members List (Paginated)
