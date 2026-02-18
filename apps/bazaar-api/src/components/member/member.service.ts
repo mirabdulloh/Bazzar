@@ -139,7 +139,9 @@ export class MemberService {
 		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 		const list = result[0]?.list ?? [];
 		const total = result[0]?.metaCounter?.[0]?.total ?? 0;
-
+		// ! VIew Count +1
+		// ! MeLiked
+		// ! MeFollowed
 		return {
 			members: list,
 			metaData: {
@@ -164,8 +166,73 @@ export class MemberService {
 		if (!member) {
 			throw new NotFoundException(Message.NO_DATA_FOUND);
 		}
+		// ! VIew Count +1
+		// ! MeLiked
+		// ! MeFollowed
 
 		return member;
+	}
+
+	// ! Get Members List (Paginated)
+	public async getMembers(input: MembersInquiry): Promise<MembersData> {
+		const page = Math.max(1, input.page ?? 1);
+		const limit = Math.min(Math.max(1, input.limit ?? 20), 50);
+
+		const sort = input?.sort ?? 'createdAt';
+		const direction = input?.direction ?? Direction.DESC;
+
+		const { search } = input;
+		const match: any = {
+			memberType: { $ne: MemberType.BRAND }, // ✅ exclude brands
+			memberStatus: { $nin: [MemberStatus.DELETE, MemberStatus.BLOCK] }, // ✅ exclude delete + block
+		};
+
+		// optional filters (keep only if you want to allow admin-like filtering)
+		if (search?.memberType) match.memberType = search.memberType; // (if you still want filtering)
+		if (search?.memberStatus) match.memberStatus = search.memberStatus;
+
+		if (search?.text?.trim()) {
+			const text = search.text.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape regex
+			match.$or = [
+				{ memberNick: { $regex: new RegExp(text, 'i') } },
+				{ memberEmail: { $regex: new RegExp(text, 'i') } },
+				{ memberPhone: { $regex: new RegExp(text, 'i') } },
+			];
+		}
+
+		const result = await this.memberModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: { [sort]: direction } },
+				{
+					$facet: {
+						members: [
+							{ $skip: (page - 1) * limit },
+							{ $limit: limit },
+							{ $project: { memberPassword: 0 } }, // ✅ never return password
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+				{
+					$addFields: {
+						total: { $ifNull: [{ $arrayElemAt: ['$metaCounter.total', 0] }, 0] },
+					},
+				},
+				{
+					$project: {
+						members: 1,
+						metaData: {
+							total: '$total',
+							page: { $literal: page },
+							limit: { $literal: limit },
+						},
+					},
+				},
+			])
+			.exec();
+
+		return result?.[0] ?? { members: [], metaData: { total: 0, page, limit } };
 	}
 
 	// ! Update Member Profile

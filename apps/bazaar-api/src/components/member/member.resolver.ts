@@ -80,6 +80,13 @@ export class MemberResolver {
 		return this.memberService.getMember(memberId);
 	}
 
+	@UseGuards(WithoutGuard)
+	@Query(() => MembersData)
+	public async getMembers(@Args('input') input: MembersInquiry): Promise<MembersData> {
+		console.log('Query: getMembers');
+		return this.memberService.getMembers(input);
+	}
+
 	// ! Like Target Member (Brand)
 	@UseGuards(AuthGuard)
 	@Mutation(() => Member)
