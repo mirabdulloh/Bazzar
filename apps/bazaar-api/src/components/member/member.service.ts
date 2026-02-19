@@ -200,6 +200,10 @@ export class MemberService {
 
 		return targetMember;
 	}
+	// private async checkSubscription(followerId: ObjectId, followingId: ObjectId): Promise<MeFollowed[]> {
+	// 	const result = await this.followModel.findOne({ followingId: followingId, followerId: followerId }).exec();
+	// 	return result ? [{ followerId: followerId, followingId: followingId, myFollowing: true }] : [];
+	// }
 
 	// ! Get Members List (Paginated)
 	public async getMembers(input: MembersInquiry): Promise<MembersData> {
