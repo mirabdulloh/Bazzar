@@ -12,6 +12,14 @@ import { shapeIntoMongoObjectId } from '../../libs/config';
 export class CategoryService {
 	constructor(@InjectModel('Category') private readonly categoryModel: Model<Category>) {}
 
+	private categoryCache: Category[] | null = null;
+	private cacheExpiry = 0;
+	private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+	private invalidateCache(): void {
+		this.categoryCache = null;
+	}
+
 	// ! CREATE CATEGORY (Admin only)
 	public async createCategory(input: CategoryInput): Promise<Category> {
 		try {
@@ -22,7 +30,9 @@ export class CategoryService {
 					.exec();
 				if (!parent) throw new NotFoundException('Parent category not found or inactive');
 			}
-			return await this.categoryModel.create(input);
+			const result = await this.categoryModel.create(input);
+			this.invalidateCache();
+			return result;
 		} catch (err) {
 			console.log('Error on createCategory Service', err.message);
 			if (err?.code === 11000) throw new BadRequestException('Category name already exists under this parent');
@@ -30,13 +40,17 @@ export class CategoryService {
 		}
 	}
 
-	// ! GET CATEGORIES (public — all ACTIVE, flat list; frontend builds hierarchy from parentCategoryId)
+	// ! GET CATEGORIES (public — all ACTIVE, flat list; cached for 5 min)
 	public async getCategories(): Promise<Category[]> {
-		return await this.categoryModel
+		if (this.categoryCache && Date.now() < this.cacheExpiry) return this.categoryCache;
+		const data = await this.categoryModel
 			.find({ categoryStatus: CategoryStatus.ACTIVE })
 			.sort({ parentCategoryId: 1, categoryName: 1 })
 			.lean()
 			.exec();
+		this.categoryCache = data;
+		this.cacheExpiry = Date.now() + this.CACHE_TTL;
+		return data;
 	}
 
 	// ! UPDATE CATEGORY (Admin only)
@@ -47,6 +61,7 @@ export class CategoryService {
 		const result = await this.categoryModel.findByIdAndUpdate(categoryId, input, { new: true }).exec();
 		if (!result) throw new NotFoundException(Message.UPDATE_FAILED);
 
+		this.invalidateCache();
 		return result;
 	}
 
@@ -61,6 +76,7 @@ export class CategoryService {
 			.exec();
 
 		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
+		this.invalidateCache();
 		return result;
 	}
 

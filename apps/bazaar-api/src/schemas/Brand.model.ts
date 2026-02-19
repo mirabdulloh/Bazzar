@@ -45,4 +45,6 @@ const BrandSchema = new Schema(
 	{ timestamps: true, collection: 'brands' },
 );
 
+BrandSchema.index({ brandStatus: 1, createdAt: -1 });
+
 export default BrandSchema;

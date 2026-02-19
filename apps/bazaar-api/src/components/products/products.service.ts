@@ -75,28 +75,21 @@ export class ProductsService {
 
 		if (!targetProduct.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 
-		// View tracking
+		// View tracking + like check in parallel
 		if (memberId) {
-			const viewInput = {
-				memberId: memberId,
-				viewRefId: productId,
-				viewGroup: ViewGroup.PRODUCT,
-			};
+			const viewInput = { memberId, viewRefId: productId, viewGroup: ViewGroup.PRODUCT };
+			const likeInput: LikeInput = { memberId, likeRefId: productId, likeGroup: LikeGroup.PRODUCT };
 
-			const newView = await this.viewService.recordView(viewInput);
+			const [newView, isLiked] = await Promise.all([
+				this.viewService.recordView(viewInput),
+				this.likeService.checkLikeExistence(likeInput),
+			]);
+
 			if (newView) {
 				await this.productModel.findByIdAndUpdate(productId, { $inc: { productViews: 1 } }).exec();
 				targetProduct[0].productViews++;
 			}
-
-			// Check meLiked
-			const likeInput: LikeInput = {
-				memberId: memberId,
-				likeRefId: productId,
-				likeGroup: LikeGroup.PRODUCT,
-			};
-			const isLiked = await this.likeService.checkLikeExistence(likeInput);
-			targetProduct[0].meLiked = isLiked ? [{ memberId: memberId, likeRefId: productId, myFavorite: true }] : [];
+			targetProduct[0].meLiked = isLiked ? [{ memberId, likeRefId: productId, myFavorite: true }] : [];
 		}
 
 		return targetProduct[0];
@@ -109,7 +102,6 @@ export class ProductsService {
 
 		if (input.search) {
 			if (input.search.memberId) match.memberId = shapeIntoMongoObjectId(input.search.memberId);
-			if (input.search.productBrandId) match.productBrandId = shapeIntoMongoObjectId(input.search.productBrandId);
 			if (input.search.productCategoryId)
 				match.productCategoryId = shapeIntoMongoObjectId(input.search.productCategoryId);
 			if (input.search.productTypeList?.length) match.productType = { $in: input.search.productTypeList };
@@ -163,7 +155,12 @@ export class ProductsService {
 				{ $sort: sort },
 				{
 					$facet: {
-						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							lookupMember,
+							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+						],
 						metaCounter: [{ $count: 'total' }],
 					},
 				},
@@ -218,7 +215,7 @@ export class ProductsService {
 		if (input.search) {
 			if (input.search.productStatus) match.productStatus = input.search.productStatus;
 			if (input.search.productTypeList?.length) match.productType = { $in: input.search.productTypeList };
-			if (input.search.productBrandId) match.productBrandId = shapeIntoMongoObjectId(input.search.productBrandId);
+			if (input.search.memberId) match.memberId = shapeIntoMongoObjectId(input.search.memberId);
 			if (input.search.productCategoryId)
 				match.productCategoryId = shapeIntoMongoObjectId(input.search.productCategoryId);
 		}

@@ -1,9 +1,4 @@
-import {
-	BadRequestException,
-	Injectable,
-	InternalServerErrorException,
-	NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Brand, BrandsData } from '../../libs/dto/brand/brand';
@@ -11,18 +6,8 @@ import { BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.inpu
 import { BrandUpdate, BrandUpdateByAdmin } from '../../libs/dto/brand/brand.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { BrandStatus } from '../../libs/enums/brand.enum';
-import { shapeIntoMongoObjectId } from '../../libs/config';
+import { lookupBrandMemberData, shapeIntoMongoObjectId } from '../../libs/config';
 import { T } from '../../libs/types/common';
-
-// Brand._id === Member._id — look up member by matching _id to _id
-const lookupMemberData = {
-	$lookup: {
-		from: 'members',
-		localField: '_id',
-		foreignField: '_id',
-		as: 'memberData',
-	},
-};
 
 @Injectable()
 export class BrandService {
@@ -70,7 +55,7 @@ export class BrandService {
 		const result = await this.brandModel
 			.aggregate([
 				{ $match: { _id: brandId, brandStatus: { $ne: BrandStatus.SUSPENDED } } },
-				lookupMemberData,
+				lookupBrandMemberData,
 				{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 			])
 			.exec();
@@ -97,7 +82,7 @@ export class BrandService {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
-							lookupMemberData,
+							lookupBrandMemberData,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],
@@ -148,7 +133,7 @@ export class BrandService {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
-							lookupMemberData,
+							lookupBrandMemberData,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],

@@ -16,9 +16,6 @@ export class Product {
 	productType: ProductType;
 
 	@Field(() => String, { nullable: true })
-	productBrandId?: ObjectId;
-
-	@Field(() => String, { nullable: true })
 	productCategoryId?: ObjectId;
 
 	@Field(() => ProductStatus)

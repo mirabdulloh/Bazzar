@@ -29,11 +29,6 @@ export class ProductInput {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productBrandId?: string;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
 	productCategoryId?: string;
 
 	@IsOptional()
@@ -137,11 +132,6 @@ export class ProductsSearch {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productBrandId?: string;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
 	productCategoryId?: string;
 
 	@IsOptional()
@@ -238,7 +228,7 @@ class AllProductsSearch {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productBrandId?: string;
+	memberId?: string;
 
 	@IsOptional()
 	@IsMongoId()

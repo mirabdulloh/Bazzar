@@ -115,6 +115,16 @@ export const lookupMember = {
 		as: 'memberData',
 	},
 };
+
+// Brand._id === Member._id — brand aggregations join on _id to _id (not memberId)
+export const lookupBrandMemberData = {
+	$lookup: {
+		from: 'members',
+		localField: '_id',
+		foreignField: '_id',
+		as: 'memberData',
+	},
+};
 export const lookupFollowingData = {
 	$lookup: {
 		from: 'members',

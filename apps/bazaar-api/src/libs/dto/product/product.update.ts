@@ -22,11 +22,6 @@ export class ProductUpdate {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productBrandId?: ObjectId;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
 	productCategoryId?: ObjectId;
 
 	@IsOptional()

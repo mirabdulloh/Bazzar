@@ -14,10 +14,6 @@ const ProductSchema = new Schema(
 			required: true,
 		},
 
-		productBrandId: {
-			type: Schema.Types.ObjectId,
-		},
-
 		productCategoryId: {
 			type: Schema.Types.ObjectId,
 		},
@@ -104,5 +100,10 @@ const ProductSchema = new Schema(
 	},
 	{ timestamps: true, collection: 'products' },
 );
+
+ProductSchema.index({ productStatus: 1, createdAt: -1 });
+ProductSchema.index({ memberId: 1, productStatus: 1 });
+ProductSchema.index({ productCategoryId: 1, productStatus: 1 });
+ProductSchema.index({ productTitle: 'text' });
 
 export default ProductSchema;
