@@ -10,11 +10,6 @@ export class ProductUpdate {
 	_id: ObjectId;
 
 	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	memberId?: ObjectId;
-
-	@IsOptional()
 	@IsEnum(ProductType)
 	@Field(() => ProductType, { nullable: true })
 	productType?: ProductType;
@@ -47,46 +42,10 @@ export class ProductUpdate {
 	productDiscountPrice?: number;
 
 	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productViews?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productLikes?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productComments?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productRank?: number;
-
-	@IsOptional()
 	@IsArray()
 	@IsString({ each: true })
 	@Field(() => [String], { nullable: true })
 	productImages?: string[];
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Float, { nullable: true })
-	productRatingAverage?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productRatingCount?: number;
 
 	@IsOptional()
 	@IsNumber()

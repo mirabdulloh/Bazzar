@@ -32,11 +32,6 @@ export class ProductInput {
 	@Field(() => String, { nullable: true })
 	productCategoryId?: ObjectId;
 
-	@IsOptional()
-	@IsEnum(ProductStatus)
-	@Field(() => ProductStatus, { nullable: true })
-	productStatus?: ProductStatus;
-
 	@IsNotEmpty()
 	@IsString()
 	@Field(() => String)
@@ -53,46 +48,10 @@ export class ProductInput {
 	@Field(() => Float, { nullable: true })
 	productDiscountPrice?: number;
 
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productViews?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productLikes?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productComments?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productRank?: number;
-
 	@IsArray()
 	@IsString({ each: true })
 	@Field(() => [String])
 	productImages: string[];
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Float, { nullable: true })
-	productRatingAverage?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	productRatingCount?: number;
 
 	@IsOptional()
 	@IsNumber()
