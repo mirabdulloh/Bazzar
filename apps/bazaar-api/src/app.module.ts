@@ -15,17 +15,17 @@ import { SocketModule } from './socket/socket.module';
 		ConfigModule.forRoot(),
 		GraphQLModule.forRoot({
 			driver: ApolloDriver,
-			playground: true,
+			playground: process.env.NODE_ENV !== 'production',
+			introspection: process.env.NODE_ENV !== 'production',
 			uploads: false,
 			autoSchemaFile: true,
-			csrfPrevention: false,
+			csrfPrevention: true,
 			formatError: (error: T) => {
 				const graphQLFormattedError = {
-					code: error?.extensions.code,
+					code: error?.extensions?.code,
 					message:
 						error?.extensions?.exceptions?.response?.message || error?.extensions?.response?.message || error?.message,
 				};
-				console.log('graphql global err');
 				return graphQLFormattedError;
 			},
 		}),

@@ -14,7 +14,7 @@ export class MemberInput {
 
 	@IsNotEmpty()
 	@IsString()
-	@Length(5, 12)
+	@Length(8, 20)
 	@Field(() => String)
 	memberPassword: string;
 
@@ -50,7 +50,7 @@ export class LoginInput {
 
 	@IsNotEmpty()
 	@IsString()
-	@Length(5, 12)
+	@Length(8, 20)
 	@Field(() => String)
 	memberPassword: string;
 }
@@ -185,13 +185,13 @@ export class MembersInquiry {
 export class ChangePasswordInput {
 	@IsNotEmpty()
 	@IsString()
-	@Length(5, 12)
+	@Length(8, 20)
 	@Field(() => String)
 	oldPassword: string;
 
 	@IsNotEmpty()
 	@IsString()
-	@Length(5, 12)
+	@Length(8, 20)
 	@Field(() => String)
 	newPassword: string;
 }

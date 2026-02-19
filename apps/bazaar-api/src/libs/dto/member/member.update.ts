@@ -38,7 +38,7 @@ export class MemberUpdateByAdmin {
 
 	@IsOptional()
 	@IsString()
-	@Length(5, 12)
+	@Length(8, 20)
 	@Field(() => String, { nullable: true })
 	memberPassword?: string;
 

@@ -9,7 +9,7 @@ import { shapeIntoMongoObjectId } from '../../libs/config';
 export class AuthService {
 	constructor(private jwtService: JwtService) {}
 	public async hashPassword(memberPassword: string): Promise<string> {
-		const salt = await bcrypt.genSalt();
+		const salt = await bcrypt.genSalt(12);
 		return await bcrypt.hash(memberPassword, salt);
 	}
 
@@ -18,15 +18,12 @@ export class AuthService {
 	}
 
 	public async createToken(member: Member): Promise<string> {
-		console.log('member=>', member);
-
-		const payload: T = {};
-		Object.keys(member['_doc'] ? member['_doc'] : member).map((ele) => {
-			payload[`${ele}`] = member[`${ele}`];
-		});
-		delete payload.memberPassword;
-		console.log('payload =>', payload);
-
+		const doc = member['_doc'] ? member['_doc'] : member;
+		const payload: T = {
+			_id: doc._id,
+			memberType: doc.memberType,
+			memberStatus: doc.memberStatus,
+		};
 		return await this.jwtService.signAsync(payload);
 	}
 
