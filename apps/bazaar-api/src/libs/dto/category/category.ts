@@ -1,16 +1,17 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { CategoryStatus } from '../../enums/cattegory.enum';
 
 @ObjectType()
 export class Category {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
 	categoryName: string;
 
 	@Field(() => String, { nullable: true })
-	parentCategoryId?: string;
+	parentCategoryId?: ObjectId;
 
 	@Field(() => CategoryStatus)
 	categoryStatus: CategoryStatus;

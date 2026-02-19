@@ -1,11 +1,12 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { CouponStatus } from '../../enums/coupons.enum';
 import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enum';
 
 @ObjectType()
 export class Member {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => MemberType)
 	memberType: MemberType;
@@ -68,7 +69,7 @@ export class Member {
 	memberBlocks: number;
 
 	@Field(() => String, { nullable: true })
-	memberCouponId?: string;
+	memberCouponId?: ObjectId;
 
 	memberPassword?: string;
 

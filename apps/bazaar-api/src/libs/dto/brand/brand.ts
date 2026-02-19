@@ -1,4 +1,5 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { BrandStatus } from '../../enums/brand.enum';
 import { Member, MetaData } from '../member/member';
 
@@ -6,7 +7,7 @@ import { Member, MetaData } from '../member/member';
 export class Brand {
 	// Brand _id === Member _id (same ObjectId, no separate memberId field)
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
 	brandName: string;

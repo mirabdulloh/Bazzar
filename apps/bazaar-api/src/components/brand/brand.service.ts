@@ -7,8 +7,8 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Brand, BrandsData } from '../../libs/dto/brand/brand';
-import { BrandInput, BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.input';
-import { BrandUpdate } from '../../libs/dto/brand/brand.update';
+import { BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.input';
+import { BrandUpdate, BrandUpdateByAdmin } from '../../libs/dto/brand/brand.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { BrandStatus } from '../../libs/enums/brand.enum';
 import { shapeIntoMongoObjectId } from '../../libs/config';
@@ -46,13 +46,11 @@ export class BrandService {
 		}
 	}
 
-	// ! UPDATE BRAND PROFILE (Brand owner updates after approval — logo, name, desc)
+	// ! UPDATE BRAND PROFILE (Brand owner — only name, logo, desc — NOT status)
 	public async updateBrand(memberId: ObjectId, input: BrandUpdate): Promise<Brand> {
-		delete input._id;
-
-		// Only ACTIVE brands can update their full profile
+		// Only ACTIVE brands can update their profile
 		const existing = await this.brandModel.findOne({ _id: memberId, brandStatus: BrandStatus.ACTIVE }).exec();
-		if (!existing) throw new BadRequestException('Brand is not active yet or does not exist');
+		if (!existing) throw new BadRequestException('Brand is not active yet. Please wait for admin approval.');
 
 		const result = await this.brandModel.findByIdAndUpdate(memberId, input, { new: true }).exec();
 		if (!result) throw new NotFoundException(Message.UPDATE_FAILED);
@@ -120,8 +118,8 @@ export class BrandService {
 		};
 	}
 
-	// ! UPDATE BRAND BY ADMIN (approve: PENDING → ACTIVE, or SUSPEND)
-	public async updateBrandByAdmin(input: BrandUpdate): Promise<Brand> {
+	// ! UPDATE BRAND BY ADMIN (approve: PENDING → ACTIVE, SUSPEND, edit any field)
+	public async updateBrandByAdmin(input: BrandUpdateByAdmin): Promise<Brand> {
 		const brandId = shapeIntoMongoObjectId(input._id);
 		delete input._id;
 

@@ -1,12 +1,13 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsDate, IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { ObjectId } from 'mongoose';
 import { CategoryStatus } from '../../enums/cattegory.enum';
 
 @InputType()
 export class CategoryUpdate {
 	@IsMongoId()
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@IsOptional()
 	@IsString()
@@ -16,7 +17,7 @@ export class CategoryUpdate {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	parentCategoryId?: string;
+	parentCategoryId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(CategoryStatus)

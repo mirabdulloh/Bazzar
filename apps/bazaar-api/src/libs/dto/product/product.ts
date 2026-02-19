@@ -1,4 +1,5 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { ProductStatus, ProductType } from '../../enums/products.enum';
 import { Member, MetaData } from '../member/member';
 import { MeLiked } from '../likes/like';
@@ -6,19 +7,19 @@ import { MeLiked } from '../likes/like';
 @ObjectType()
 export class Product {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => ProductType)
 	productType: ProductType;
 
 	@Field(() => String, { nullable: true })
-	productBrandId?: string;
+	productBrandId?: ObjectId;
 
 	@Field(() => String, { nullable: true })
-	productCategoryId?: string;
+	productCategoryId?: ObjectId;
 
 	@Field(() => ProductStatus)
 	productStatus: ProductStatus;

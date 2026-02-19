@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { BrandService } from './brand.service';
 import { Brand, BrandsData } from '../../libs/dto/brand/brand';
 import { BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.input';
-import { BrandUpdate } from '../../libs/dto/brand/brand.update';
+import { BrandUpdate, BrandUpdateByAdmin } from '../../libs/dto/brand/brand.update';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
@@ -25,7 +25,6 @@ export class BrandResolver {
 	@Mutation(() => Brand)
 	public async updateBrand(@Args('input') input: BrandUpdate, @AuthMember('_id') memberId: ObjectId): Promise<Brand> {
 		console.log('Mutation: updateBrand');
-		input._id = memberId.toString();
 		return await this.brandService.updateBrand(memberId, input);
 	}
 
@@ -33,7 +32,7 @@ export class BrandResolver {
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Brand)
-	public async updateBrandByAdmin(@Args('input') input: BrandUpdate): Promise<Brand> {
+	public async updateBrandByAdmin(@Args('input') input: BrandUpdateByAdmin): Promise<Brand> {
 		console.log('Mutation: updateBrandByAdmin');
 		return await this.brandService.updateBrandByAdmin(input);
 	}

@@ -1,17 +1,18 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { IsArray, IsEnum, IsMongoId, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { ObjectId } from 'mongoose';
 import { ProductStatus, ProductType } from '../../enums/products.enum';
 
 @InputType()
 export class ProductUpdate {
 	@IsMongoId()
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberId?: string;
+	memberId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(ProductType)
@@ -21,12 +22,12 @@ export class ProductUpdate {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productBrandId?: string;
+	productBrandId?: ObjectId;
 
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productCategoryId?: string;
+	productCategoryId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(ProductStatus)

@@ -1,5 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsDate, IsEnum, IsInt, IsMongoId, IsOptional, IsString, Length, Min } from 'class-validator';
+import { ObjectId } from 'mongoose';
 import { CouponStatus } from '../../enums/coupons.enum';
 import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enum';
 
@@ -7,7 +8,7 @@ import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enu
 export class MemberUpdateByAdmin {
 	@IsMongoId()
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@IsOptional()
 	@IsEnum(MemberType)
@@ -130,7 +131,7 @@ export class MemberUpdateByAdmin {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberCouponId?: string;
+	memberCouponId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(CouponStatus)
@@ -167,7 +168,7 @@ export class MemberUpdateByAdmin {
 export class MemberUpdate {
 	@IsMongoId()
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@IsOptional()
 	@IsEnum(MemberAuthType)

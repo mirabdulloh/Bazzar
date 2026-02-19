@@ -1,15 +1,16 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { IsMongoId, IsNumber, Min } from 'class-validator';
+import { ObjectId } from 'mongoose';
 
 @InputType()
 export class OrderItemInput {
 	@IsMongoId()
 	@Field(() => String)
-	orderId: string;
+	orderId: ObjectId;
 
 	@IsMongoId()
 	@Field(() => String)
-	productId: string;
+	productId: ObjectId;
 
 	@IsNumber()
 	@Min(0)

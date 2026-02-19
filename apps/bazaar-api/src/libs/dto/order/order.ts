@@ -1,4 +1,5 @@
 import { Field, Float, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { OrderDeliveryStatus, OrderPaymentMethod, OrderPaymentStatus, OrderStatus } from '../../enums/order.enum';
 import { Member, MetaData } from '../member/member';
 import { Address } from '../addresses/address';
@@ -7,10 +8,10 @@ import { OrderItem } from '../order-items/order-item';
 @ObjectType()
 export class Order {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => OrderStatus)
 	orderStatus: OrderStatus;
@@ -31,7 +32,7 @@ export class Order {
 	orderPaymentStatus: OrderPaymentStatus;
 
 	@Field(() => String)
-	orderDeliveryAddressId: string;
+	orderDeliveryAddressId: ObjectId;
 
 	@Field(() => OrderDeliveryStatus)
 	orderDeliveryStatus: OrderDeliveryStatus;

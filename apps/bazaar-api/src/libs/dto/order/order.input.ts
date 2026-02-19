@@ -12,6 +12,7 @@ import {
 	ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ObjectId } from 'mongoose';
 import { OrderDeliveryStatus, OrderPaymentMethod, OrderPaymentStatus, OrderStatus } from '../../enums/order.enum';
 import { Direction } from '../../enums/common.enum';
 
@@ -20,7 +21,7 @@ import { Direction } from '../../enums/common.enum';
 export class CreateOrderItemInput {
 	@IsMongoId()
 	@Field(() => String)
-	productId: string;
+	productId: ObjectId;
 
 	@IsNumber()
 	@Min(1)
@@ -33,7 +34,7 @@ export class CreateOrderItemInput {
 export class CreateOrderInput {
 	@IsMongoId()
 	@Field(() => String)
-	orderDeliveryAddressId: string;
+	orderDeliveryAddressId: ObjectId;
 
 	@IsOptional()
 	@IsEnum(OrderPaymentMethod)
@@ -53,7 +54,7 @@ export class OrderInput {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberId?: string;
+	memberId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(OrderStatus)
@@ -88,7 +89,7 @@ export class OrderInput {
 
 	@IsMongoId()
 	@Field(() => String)
-	orderDeliveryAddressId: string;
+	orderDeliveryAddressId: ObjectId;
 
 	@IsOptional()
 	@IsEnum(OrderDeliveryStatus)
@@ -140,7 +141,7 @@ class AllOrdersSearch {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberId?: string;
+	memberId?: ObjectId;
 }
 
 @InputType()

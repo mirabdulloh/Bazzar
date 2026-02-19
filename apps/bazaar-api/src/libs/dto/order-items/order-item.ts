@@ -1,17 +1,18 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { Order } from '../order/order';
 import { Product } from '../product/product';
 
 @ObjectType()
 export class OrderItem {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	orderId: string;
+	orderId: ObjectId;
 
 	@Field(() => String)
-	productId: string;
+	productId: ObjectId;
 
 	@Field(() => Float)
 	priceAtPurchase: number;

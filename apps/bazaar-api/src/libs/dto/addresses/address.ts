@@ -1,13 +1,14 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { Member } from '../member/member';
 
 @ObjectType()
 export class Address {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => String)
 	addressName: string;
