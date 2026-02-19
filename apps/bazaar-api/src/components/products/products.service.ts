@@ -11,6 +11,7 @@ import {
 import { ProductUpdate } from '../../libs/dto/product/product.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { ProductStatus } from '../../libs/enums/products.enum';
+import { BrandStatus } from '../../libs/enums/brand.enum';
 import { lookupAuthMemberLiked, lookupMember, shapeIntoMongoObjectId } from '../../libs/config';
 import { StatisticModifier, T } from '../../libs/types/common';
 import { LikeInput } from '../../libs/dto/likes/like.input';
@@ -19,11 +20,13 @@ import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { ViewService } from '../view/view.service';
 import { MemberService } from '../member/member.service';
+import { Brand } from '../../libs/dto/brand/brand';
 
 @Injectable()
 export class ProductsService {
 	constructor(
 		@InjectModel('Product') private readonly productModel: Model<Product>,
+		@InjectModel('Brand') private readonly brandModel: Model<Brand>,
 		private readonly memberService: MemberService,
 		private readonly likeService: LikeService,
 		private readonly viewService: ViewService,
@@ -31,6 +34,15 @@ export class ProductsService {
 
 	// ! CREATE PRODUCT
 	public async createProduct(input: ProductInput): Promise<Product> {
+		// Validate that brand is ACTIVE before allowing product creation
+		// Brand._id === memberId (same ObjectId)
+		const activeBrand = await this.brandModel
+			.findOne({ _id: shapeIntoMongoObjectId(input.memberId), brandStatus: BrandStatus.ACTIVE })
+			.exec();
+		if (!activeBrand) {
+			throw new BadRequestException('Your brand is not approved yet. Please wait for admin approval.');
+		}
+
 		try {
 			const result = await this.productModel.create(input);
 			// increment memberProducts stat

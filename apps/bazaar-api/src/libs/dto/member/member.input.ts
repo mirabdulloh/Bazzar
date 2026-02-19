@@ -32,6 +32,12 @@ export class MemberInput {
 	@IsEnum(MemberAuthType)
 	@Field(() => MemberAuthType, { nullable: true })
 	memberAuthType?: MemberAuthType;
+
+	// ! For BRAND signups — logo image path uploaded before signup
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	brandLogo?: string;
 }
 
 @InputType()

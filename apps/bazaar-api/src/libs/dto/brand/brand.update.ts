@@ -1,9 +1,10 @@
-import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { IsDate, IsEnum, IsMongoId, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { Field, InputType } from '@nestjs/graphql';
+import { IsDate, IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
 import { BrandStatus } from '../../enums/brand.enum';
 
 @InputType()
 export class BrandUpdate {
+	// _id = memberId (Brand's _id is the same as the owning member's _id)
 	@IsMongoId()
 	@Field(() => String)
 	_id: string;
@@ -27,29 +28,6 @@ export class BrandUpdate {
 	@IsEnum(BrandStatus)
 	@Field(() => BrandStatus, { nullable: true })
 	brandStatus?: BrandStatus;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	memberId?: string;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Float, { nullable: true })
-	brandRating?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	brandFollowersCount?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	brandReviewsCount?: number;
 
 	@IsOptional()
 	@IsDate()

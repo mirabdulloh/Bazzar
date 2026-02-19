@@ -11,7 +11,6 @@ const BrandSchema = new Schema(
 
 		brandLogo: {
 			type: String,
-			required: true,
 		},
 
 		brandDesc: {
@@ -21,12 +20,7 @@ const BrandSchema = new Schema(
 		brandStatus: {
 			type: String,
 			enum: BrandStatus,
-			default: BrandStatus.ACTIVE,
-		},
-
-		memberId: {
-			type: Schema.Types.ObjectId,
-			required: true,
+			default: BrandStatus.PENDING,
 		},
 
 		brandRating: {

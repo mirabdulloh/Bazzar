@@ -7,7 +7,9 @@ import {
 } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
+import { Brand } from '../../libs/dto/brand/brand';
 import { InjectModel } from '@nestjs/mongoose';
+import { BrandStatus } from '../../libs/enums/brand.enum';
 import {
 	BrandInquiry,
 	ChangePasswordInput,
@@ -31,17 +33,30 @@ import { ViewService } from '../view/view.service';
 export class MemberService {
 	constructor(
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
+		@InjectModel('Brand') private readonly brandModel: Model<Brand>,
 		private authService: AuthService,
 		private likeService: LikeService,
 		private viewService: ViewService,
 	) {}
 
-	// ! Sing Up
+	// ! Sign Up
 	public async signup(input: MemberInput): Promise<Member> {
 		// Password Hashed
 		input.memberPassword = await this.authService.hashPassword(input.memberPassword);
 		try {
 			const result = await this.memberModel.create(input);
+
+			// Auto-create Brand document if memberType is BRAND
+			// Brand._id = Member._id (same ObjectId), starts as PENDING until admin approves
+			if (result.memberType === MemberType.BRAND) {
+				await this.brandModel.create({
+					_id: result._id,
+					brandName: result.memberNick,
+					brandLogo: input.brandLogo ?? '',
+					brandStatus: BrandStatus.PENDING,
+				});
+			}
+
 			// Authentication via token
 			result.accessToken = await this.authService.createToken(result);
 			console.log('accessToken =>,', result);
