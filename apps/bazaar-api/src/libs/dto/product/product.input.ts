@@ -11,6 +11,7 @@ import {
 	IsString,
 	Min,
 } from 'class-validator';
+import { ObjectId } from 'mongoose';
 import { ProductStatus, ProductType } from '../../enums/products.enum';
 import { availableProductSorts } from '../../config';
 import { Direction } from '../../enums/common.enum';
@@ -20,7 +21,7 @@ export class ProductInput {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberId?: string;
+	memberId?: ObjectId;
 
 	@IsEnum(ProductType)
 	@Field(() => ProductType)
@@ -29,7 +30,7 @@ export class ProductInput {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productCategoryId?: string;
+	productCategoryId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(ProductStatus)
@@ -127,12 +128,12 @@ export class ProductsSearch {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberId?: string;
+	memberId?: ObjectId;
 
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productCategoryId?: string;
+	productCategoryId?: ObjectId;
 
 	@IsOptional()
 	@IsEnum(ProductType, { each: true })
@@ -228,12 +229,12 @@ class AllProductsSearch {
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	memberId?: string;
+	memberId?: ObjectId;
 
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	productCategoryId?: string;
+	productCategoryId?: ObjectId;
 }
 
 @InputType()

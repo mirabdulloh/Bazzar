@@ -40,8 +40,7 @@ export class ProductsResolver {
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Product> {
 		console.log('Mutation: createProduct');
-		input.memberId = memberId.toString();
-		input.productBrandId = memberId.toString();
+		input.memberId = memberId;
 		return await this.productsService.createProduct(input);
 	}
 
