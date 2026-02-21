@@ -25,6 +25,7 @@ export class CommentResolver {
 	): Promise<Comment> {
 		console.log('Mutation: createComment');
 		input.commentRefId = shapeIntoMongoObjectId(input.commentRefId);
+		if (input.commentReplyId) input.commentReplyId = shapeIntoMongoObjectId(input.commentReplyId);
 		return await this.commentService.createComment(memberId, input);
 	}
 

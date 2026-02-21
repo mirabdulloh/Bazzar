@@ -24,6 +24,14 @@ export class CommentService {
 	public async createComment(memberId: ObjectId, input: CommentInput): Promise<Comment> {
 		input.memberId = memberId;
 
+		// Validate parent comment exists when this is a reply
+		if (input.commentReplyId) {
+			const parent = await this.commentModel
+				.findOne({ _id: input.commentReplyId, commentStatus: CommentStatus.ACTIVE })
+				.exec();
+			if (!parent) throw new BadRequestException(Message.NO_DATA_FOUND);
+		}
+
 		let result = null;
 		try {
 			result = await this.commentModel.create(input);
@@ -32,30 +40,33 @@ export class CommentService {
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 
-		switch (input.commentGroup) {
-			case CommentGroup.PRODUCT:
-				await this.productsService.productStatsEdits({
-					_id: input.commentRefId,
-					targetKey: 'productComments',
-					modifier: 1,
-				});
-				break;
+		// Only increment target stats for top-level comments, not replies
+		if (!input.commentReplyId) {
+			switch (input.commentGroup) {
+				case CommentGroup.PRODUCT:
+					await this.productsService.productStatsEdits({
+						_id: input.commentRefId,
+						targetKey: 'productComments',
+						modifier: 1,
+					});
+					break;
 
-			case CommentGroup.ARTICLE:
-				await this.boardArticleService.boardArticleStatsEditor({
-					_id: input.commentRefId,
-					targetKey: 'articleComments',
-					modifier: 1,
-				});
-				break;
+				case CommentGroup.ARTICLE:
+					await this.boardArticleService.boardArticleStatsEditor({
+						_id: input.commentRefId,
+						targetKey: 'articleComments',
+						modifier: 1,
+					});
+					break;
 
-			case CommentGroup.MEMBER:
-				await this.memberService.memberStatsEdits({
-					_id: input.commentRefId,
-					targetKey: 'memberComments',
-					modifier: 1,
-				});
-				break;
+				case CommentGroup.MEMBER:
+					await this.memberService.memberStatsEdits({
+						_id: input.commentRefId,
+						targetKey: 'memberComments',
+						modifier: 1,
+					});
+					break;
+			}
 		}
 
 		if (!result) throw new InternalServerErrorException(Message.CREATE_FAILED);
@@ -97,6 +108,15 @@ export class CommentService {
 							{ $limit: input.limit },
 							lookupMember,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+							{
+								$lookup: {
+									from: 'comments',
+									localField: 'commentReplyId',
+									foreignField: '_id',
+									as: 'parentCommentData',
+								},
+							},
+							{ $unwind: { path: '$parentCommentData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],
 					},

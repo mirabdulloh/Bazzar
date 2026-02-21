@@ -41,6 +41,9 @@ export class Comment {
 	// ** Relationship Fields **
 	@Field(() => Member, { nullable: true })
 	memberData?: Member;
+
+	@Field(() => Comment, { nullable: true })
+	parentCommentData?: Comment;
 }
 
 @ObjectType()
