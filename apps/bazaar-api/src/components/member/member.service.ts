@@ -21,7 +21,7 @@ import { Direction, Message } from '../../libs/enums/common.enum';
 import { AuthService } from '../auth/auth.service';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { MemberUpdate, MemberUpdateByAdmin } from '../../libs/dto/member/member.update';
-import { lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/config';
+import { lookupAuthMemberFollowed, lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/config';
 import { StatisticModifier, T } from '../../libs/types/common';
 import { LikeInput } from '../../libs/dto/likes/like.input';
 import { LikeGroup } from '../../libs/enums/likes.enum';
@@ -188,22 +188,25 @@ export class MemberService {
 			const newView = await this.viewService.recordView(viewInput);
 			if (newView) {
 				await this.memberModel.findOneAndUpdate(search, { $inc: { memberViews: 1 } }, { new: true }).exec();
-
 				targetMember.memberViews++;
 			}
-			// //! MeLIked
-			// const likeInput = { memberId, likeRefId: targetId, likeGroup: LikeGroup.MEMBER };
-			// targetMember.meLiked = await this.likeService.checkLikeExistence(likeInput);
-			// //! MeFollowed
-			// targetMember.meFollowed = await this.checkSubscription(memberId, targetId);
 		}
 
-		return targetMember;
+		const result = await this.memberModel
+			.aggregate([
+				{ $match: search },
+				...(memberId
+					? [
+							lookupAuthMemberLiked(memberId, '_id'),
+							lookupAuthMemberFollowed({ followerId: memberId, followingId: '$_id' }),
+						]
+					: []),
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		return result[0];
 	}
-	// private async checkSubscription(followerId: ObjectId, followingId: ObjectId): Promise<MeFollowed[]> {
-	// 	const result = await this.followModel.findOne({ followingId: followingId, followerId: followerId }).exec();
-	// 	return result ? [{ followerId: followerId, followingId: followingId, myFollowing: true }] : [];
-	// }
 
 	// ! Get Members List (Paginated)
 	public async getMembers(input: MembersInquiry): Promise<MembersData> {
