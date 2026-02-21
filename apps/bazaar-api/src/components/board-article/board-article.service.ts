@@ -116,9 +116,7 @@ export class BoardArticleService {
 	}
 
 	public async likeTargetBoardArticle(memberId: ObjectId, likeRefId: ObjectId): Promise<Article> {
-		const target = await this.boardArticleModel
-			.findOne({ _id: likeRefId, articleStatus: ArticleStatus.ACTIVE })
-			.exec();
+		const target = await this.boardArticleModel.findOne({ _id: likeRefId, articleStatus: ArticleStatus.ACTIVE }).exec();
 		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 
 		const input: LikeInput = { memberId, likeRefId, likeGroup: LikeGroup.ARTICLE };

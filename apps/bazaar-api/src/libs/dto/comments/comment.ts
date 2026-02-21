@@ -1,11 +1,12 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { CommentGroup, CommentStatus } from '../../enums/comments.enum';
-import { Member } from '../member/member';
+import { Member, MetaCounter } from '../member/member';
 
 @ObjectType()
 export class Comment {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => CommentStatus)
 	commentStatus: CommentStatus;
@@ -14,13 +15,13 @@ export class Comment {
 	commentGroup: CommentGroup;
 
 	@Field(() => String)
-	commentRefId: string;
+	commentRefId: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => String, { nullable: true })
-	commentReplyId?: string;
+	commentReplyId?: ObjectId;
 
 	@Field(() => String)
 	commentContent: string;
@@ -39,8 +40,14 @@ export class Comment {
 
 	// ** Relationship Fields **
 	@Field(() => Member, { nullable: true })
-	member?: Member;
+	memberData?: Member;
+}
 
-	@Field(() => Comment, { nullable: true })
-	parentComment?: Comment;
+@ObjectType()
+export class Comments {
+	@Field(() => [Comment])
+	list: Comment[];
+
+	@Field(() => [MetaCounter])
+	metaCounter: MetaCounter[];
 }

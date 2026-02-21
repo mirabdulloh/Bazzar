@@ -1,46 +1,63 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { CommentGroup, CommentStatus } from '../../enums/comments.enum';
+import { IsEnum, IsIn, IsInt, IsMongoId, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { ObjectId } from 'mongoose';
+import { CommentGroup } from '../../enums/comments.enum';
+import { availableCommentSorts } from '../../config';
+import { Direction } from '../../enums/common.enum';
 
 @InputType()
 export class CommentInput {
-	@IsOptional()
-	@IsEnum(CommentStatus)
-	@Field(() => CommentStatus, { nullable: true })
-	commentStatus?: CommentStatus;
-
-	@IsOptional()
 	@IsEnum(CommentGroup)
-	@Field(() => CommentGroup, { nullable: true })
-	commentGroup?: CommentGroup;
+	@Field(() => CommentGroup)
+	commentGroup: CommentGroup;
 
 	@IsMongoId()
 	@Field(() => String)
-	commentRefId: string;
-
-	@IsMongoId()
-	@Field(() => String)
-	memberId: string;
+	commentRefId: ObjectId;
 
 	@IsOptional()
 	@IsMongoId()
 	@Field(() => String, { nullable: true })
-	commentReplyId?: string;
+	commentReplyId?: ObjectId;
 
 	@IsNotEmpty()
 	@IsString()
 	@Field(() => String)
 	commentContent: string;
 
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	commentLikes?: number;
+	// Internal — set by service from memberId
+	memberId?: ObjectId;
+}
+
+@InputType()
+class CommentsSearch {
+	@IsMongoId()
+	@Field(() => String)
+	commentRefId: ObjectId;
+}
+
+@InputType()
+export class CommentsInquiry {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
 
 	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	commentViews?: number;
+	@IsIn(availableCommentSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@Field(() => CommentsSearch)
+	search: CommentsSearch;
 }
