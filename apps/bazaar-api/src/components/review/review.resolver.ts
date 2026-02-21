@@ -19,10 +19,7 @@ export class ReviewResolver {
 
 	@UseGuards(AuthGuard)
 	@Mutation(() => Review)
-	public async createReview(
-		@Args('input') input: ReviewInput,
-		@AuthMember('_id') memberId: ObjectId,
-	): Promise<Review> {
+	public async createReview(@Args('input') input: ReviewInput, @AuthMember('_id') memberId: ObjectId): Promise<Review> {
 		console.log('Mutation: createReview');
 		input.productId = shapeIntoMongoObjectId(input.productId);
 		input.orderItemId = shapeIntoMongoObjectId(input.orderItemId);

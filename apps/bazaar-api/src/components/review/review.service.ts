@@ -71,9 +71,7 @@ export class ReviewService {
 		const { _id, reviewRating } = input;
 
 		// Fetch current review to get old rating before update
-		const current = await this.reviewModel
-			.findOne({ _id, memberId, reviewStatus: ReviewStatus.ACTIVE })
-			.exec();
+		const current = await this.reviewModel.findOne({ _id, memberId, reviewStatus: ReviewStatus.ACTIVE }).exec();
 		if (!current) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
 		const result = await this.reviewModel
@@ -194,7 +192,9 @@ export class ReviewService {
 								then: 0,
 								else: {
 									$divide: [
-										{ $subtract: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, target.reviewRating] },
+										{
+											$subtract: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, target.reviewRating],
+										},
 										{ $subtract: ['$productRatingCount', 1] },
 									],
 								},

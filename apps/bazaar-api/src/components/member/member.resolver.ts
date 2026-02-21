@@ -16,10 +16,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
-import { getSerialForImage, shapeIntoMongoObjectId, validMimeTypes } from '../../libs/config';
+import { getSerialForImage, shapeIntoMongoObjectId, validMimeTypes, allowedUploadTargets } from '../../libs/config';
 import { Message } from '../../libs/enums/common.enum';
 import { GraphQLUpload, FileUpload } from 'graphql-upload';
-import { createWriteStream } from 'fs';
+import { createWriteStream, mkdirSync } from 'fs';
 import { ObjectId } from 'mongoose';
 
 @Resolver()
@@ -129,11 +129,14 @@ export class MemberResolver {
 		console.log('Mutation: imageUploader');
 
 		if (!filename) throw new Error(Message.UPLOAD_FAILED);
+		if (!allowedUploadTargets.includes(target)) throw new Error(Message.BAD_REQUEST);
 		const validMime = validMimeTypes.includes(mimetype);
 		if (!validMime) throw new Error(Message.PROVIDE_ALLOWED_FORMAT);
 
 		const imageName = getSerialForImage(filename);
-		const url = `uploads/${target}/${imageName}`;
+		const dir = `uploads/${target}`;
+		mkdirSync(dir, { recursive: true });
+		const url = `${dir}/${imageName}`;
 		const stream = createReadStream();
 
 		const result = await new Promise((resolve, reject) => {
@@ -155,6 +158,7 @@ export class MemberResolver {
 		@Args('target') target: string,
 	): Promise<string[]> {
 		console.log('Mutation: imagesUploader');
+		if (!allowedUploadTargets.includes(target)) throw new Error(Message.BAD_REQUEST);
 
 		const uploadedImages = [];
 		const promisedList = files.map(async (img: Promise<FileUpload>, index: number): Promise<void> => {
@@ -165,7 +169,9 @@ export class MemberResolver {
 				if (!validMime) throw new Error(Message.PROVIDE_ALLOWED_FORMAT);
 
 				const imageName = getSerialForImage(filename);
-				const url = `uploads/${target}/${imageName}`;
+				const dir = `uploads/${target}`;
+				mkdirSync(dir, { recursive: true });
+				const url = `${dir}/${imageName}`;
 				const stream = createReadStream();
 
 				const result = await new Promise((resolve, reject) => {
@@ -178,7 +184,8 @@ export class MemberResolver {
 
 				uploadedImages[index] = url;
 			} catch (err) {
-				console.log('Error, file missing!');
+				console.log('Error, imagesUploader:', err.message);
+				throw new Error(Message.UPLOAD_FAILED);
 			}
 		});
 

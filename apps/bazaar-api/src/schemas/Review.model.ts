@@ -47,4 +47,10 @@ const ReviewSchema = new Schema(
 	{ timestamps: true, collection: 'reviews' },
 );
 
+// DB-level uniqueness: one review per orderItem (prevents race-condition duplicates)
+ReviewSchema.index({ orderItemId: 1 }, { unique: true });
+// Query optimization: getReviews filters by productId + reviewStatus on every call
+ReviewSchema.index({ productId: 1, reviewStatus: 1 });
+ReviewSchema.index({ memberId: 1 });
+
 export default ReviewSchema;
