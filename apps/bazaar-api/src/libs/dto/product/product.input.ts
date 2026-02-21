@@ -217,9 +217,9 @@ export class AllProductsInquiry {
 	@Field(() => Direction, { nullable: true })
 	direction?: Direction;
 
-	@IsNotEmpty()
-	@Field(() => AllProductsSearch)
-	search: AllProductsSearch;
+	@IsOptional()
+	@Field(() => AllProductsSearch, { nullable: true })
+	search?: AllProductsSearch;
 }
 
 @InputType()
