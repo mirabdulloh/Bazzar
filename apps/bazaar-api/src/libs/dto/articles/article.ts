@@ -1,14 +1,16 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { ArticleCategory, ArticleStatus } from '../../enums/articles.enum';
-import { Member } from '../member/member';
+import { Member, MetaCounter } from '../member/member';
+import { MeLiked } from '../likes/like';
 
 @ObjectType()
 export class Article {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => ArticleCategory)
 	articleCategory: ArticleCategory;
@@ -45,5 +47,17 @@ export class Article {
 
 	// ** Relationship Fields **
 	@Field(() => Member, { nullable: true })
-	member?: Member;
+	memberData?: Member;
+
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
+}
+
+@ObjectType()
+export class Articles {
+	@Field(() => [Article])
+	list: Article[];
+
+	@Field(() => [MetaCounter])
+	metaCounter: MetaCounter[];
 }
