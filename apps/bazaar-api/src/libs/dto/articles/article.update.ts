@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsArray, IsDate, IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { ArticleCategory, ArticleStatus } from '../../enums/articles.enum';
 
@@ -35,8 +35,4 @@ export class ArticleUpdate {
 	@Field(() => [String], { nullable: true })
 	articleImages?: string[];
 
-	@IsOptional()
-	@IsDate()
-	@Field(() => Date, { nullable: true })
-	publishedAt?: Date;
 }

@@ -3,17 +3,6 @@ import { IsInt, IsMongoId, IsOptional, Min } from 'class-validator';
 import { ObjectId } from 'mongoose';
 
 @InputType()
-export class FollowInput {
-	@IsMongoId()
-	@Field(() => String)
-	followingId: ObjectId;
-
-	@IsMongoId()
-	@Field(() => String)
-	followerId: ObjectId;
-}
-
-@InputType()
 class FollowSearch {
 	@IsOptional()
 	@IsMongoId()

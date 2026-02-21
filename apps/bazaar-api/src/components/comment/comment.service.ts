@@ -74,7 +74,7 @@ export class CommentService {
 	}
 
 	public async updateComment(memberId: ObjectId, input: CommentUpdate): Promise<Comment> {
-		const { _id } = input;
+		const { _id, commentStatus } = input;
 
 		const result = await this.commentModel
 			.findOneAndUpdate(
@@ -89,6 +89,12 @@ export class CommentService {
 			.exec();
 
 		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+
+		// Decrement target stats when user soft-deletes a top-level comment
+		if (commentStatus === CommentStatus.DELETED && !result.commentReplyId) {
+			await this.commentStatsEditor(result.commentGroup, result.commentRefId, -1);
+		}
+
 		return result;
 	}
 
@@ -131,8 +137,45 @@ export class CommentService {
 	/** ADMIN */
 
 	public async removeCommentByAdmin(commentId: ObjectId): Promise<Comment> {
+		const target = await this.commentModel.findById(commentId).exec();
+		if (!target) throw new InternalServerErrorException(Message.REMOVE_FAILED);
+
 		const result = await this.commentModel.findByIdAndDelete(commentId);
 		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
+
+		// Decrement target stats only for top-level comments
+		if (!target.commentReplyId) {
+			await this.commentStatsEditor(target.commentGroup, target.commentRefId, -1);
+		}
+
 		return result;
+	}
+
+	private async commentStatsEditor(commentGroup: CommentGroup, commentRefId: ObjectId, modifier: number): Promise<void> {
+		switch (commentGroup) {
+			case CommentGroup.PRODUCT:
+				await this.productsService.productStatsEdits({
+					_id: commentRefId,
+					targetKey: 'productComments',
+					modifier,
+				});
+				break;
+
+			case CommentGroup.ARTICLE:
+				await this.boardArticleService.boardArticleStatsEditor({
+					_id: commentRefId,
+					targetKey: 'articleComments',
+					modifier,
+				});
+				break;
+
+			case CommentGroup.MEMBER:
+				await this.memberService.memberStatsEdits({
+					_id: commentRefId,
+					targetKey: 'memberComments',
+					modifier,
+				});
+				break;
+		}
 	}
 }

@@ -26,6 +26,7 @@ export class BoardArticleService {
 
 	public async createBoardArticle(memberId: ObjectId, input: ArticleInput): Promise<Article> {
 		input.memberId = memberId;
+		input['publishedAt'] = new Date();
 		try {
 			const result = await this.boardArticleModel.create(input);
 			await this.memberService.memberStatsEdits({
