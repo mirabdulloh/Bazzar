@@ -1,23 +1,23 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsEnum, IsIn, IsInt, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ObjectId } from 'mongoose';
 import { ReviewStatus } from '../../enums/review.enum';
+import { availableReviewSorts } from '../../config';
+import { Direction } from '../../enums/common.enum';
 
 @InputType()
 export class ReviewInput {
 	@IsMongoId()
 	@Field(() => String)
-	productId: string;
+	productId: ObjectId;
 
 	@IsMongoId()
 	@Field(() => String)
-	memberId: string;
-
-	@IsMongoId()
-	@Field(() => String)
-	orderItemId: string;
+	orderItemId: ObjectId;
 
 	@IsNumber()
-	@Min(0)
+	@Min(1)
+	@Max(5)
 	@Field(() => Float)
 	reviewRating: number;
 
@@ -32,14 +32,79 @@ export class ReviewInput {
 	@Field(() => [String], { nullable: true })
 	reviewImages?: string[];
 
+	// Internal — set by service from @AuthMember
+	memberId?: ObjectId;
+}
+
+@InputType()
+class ReviewSearch {
+	@IsMongoId()
+	@Field(() => String)
+	productId: ObjectId;
+}
+
+@InputType()
+class AllReviewSearch {
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	productId?: ObjectId;
+
 	@IsOptional()
 	@IsEnum(ReviewStatus)
 	@Field(() => ReviewStatus, { nullable: true })
 	reviewStatus?: ReviewStatus;
+}
+
+@InputType()
+export class ReviewsInquiry {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
 
 	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	reviewLikes?: number;
+	@IsIn(availableReviewSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@Field(() => ReviewSearch)
+	search: ReviewSearch;
+}
+
+@InputType()
+export class AllReviewsInquiry {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableReviewSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => AllReviewSearch, { nullable: true })
+	search?: AllReviewSearch;
 }

@@ -1,22 +1,23 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { ReviewStatus } from '../../enums/review.enum';
-import { Member } from '../member/member';
+import { Member, MetaCounter } from '../member/member';
 import { Product } from '../product/product';
 import { OrderItem } from '../order-items/order-item';
 
 @ObjectType()
 export class Review {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	productId: string;
+	productId: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => String)
-	orderItemId: string;
+	orderItemId: ObjectId;
 
 	@Field(() => Float)
 	reviewRating: number;
@@ -41,11 +42,20 @@ export class Review {
 
 	// ** Relationship Fields **
 	@Field(() => Product, { nullable: true })
-	product?: Product;
+	productData?: Product;
 
 	@Field(() => Member, { nullable: true })
-	member?: Member;
+	memberData?: Member;
 
 	@Field(() => OrderItem, { nullable: true })
-	orderItem?: OrderItem;
+	orderItemData?: OrderItem;
+}
+
+@ObjectType()
+export class Reviews {
+	@Field(() => [Review])
+	list: Review[];
+
+	@Field(() => [MetaCounter])
+	metaCounter: MetaCounter[];
 }

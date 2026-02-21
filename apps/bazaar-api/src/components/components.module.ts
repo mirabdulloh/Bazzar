@@ -12,6 +12,7 @@ import { FollowModule } from './follow/follow.module';
 import { BoardArticleModule } from './board-article/board-article.module';
 import { CommentModule } from './comment/comment.module';
 import { NoticeModule } from './notice/notice.module';
+import { ReviewModule } from './review/review.module';
 
 @Module({
 	imports: [
@@ -28,6 +29,7 @@ import { NoticeModule } from './notice/notice.module';
 		BoardArticleModule,
 		CommentModule,
 		NoticeModule,
+		ReviewModule,
 	],
 })
 export class ComponentsModule {}
