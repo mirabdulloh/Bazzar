@@ -1,4 +1,9 @@
-import { Module } from '@nestjs/common';
+// import { Module } from '@nestjs/common';
+// import { SocketGateway } from './socket.gateway';
+// import { AuthModule } from '../components/auth/auth.module';
 
-@Module({})
-export class SocketModule {}
+// @Module({
+// 	imports: [AuthModule],
+// 	providers: [SocketGateway],
+// })
+// export class SocketModule {}
