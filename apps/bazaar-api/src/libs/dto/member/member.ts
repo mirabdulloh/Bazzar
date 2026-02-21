@@ -2,6 +2,25 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { CouponStatus } from '../../enums/coupons.enum';
 import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enum';
+import { MeLiked } from '../likes/like';
+
+@ObjectType()
+export class MetaCounter {
+	@Field(() => Int)
+	total: number;
+}
+
+@ObjectType()
+export class MeFollowed {
+	@Field(() => String)
+	followerId: ObjectId;
+
+	@Field(() => String)
+	followingId: ObjectId;
+
+	@Field(() => Boolean)
+	myFollowing: boolean;
+}
 
 @ObjectType()
 export class Member {
@@ -66,6 +85,9 @@ export class Member {
 	memberWarnings: number;
 
 	@Field(() => Int)
+	memberProducts: number;
+
+	@Field(() => Int)
 	memberBlocks: number;
 
 	@Field(() => String, { nullable: true })
@@ -99,6 +121,13 @@ export class Member {
 
 	@Field(() => String, { nullable: true })
 	accessToken?: string;
+
+	// ** Relationship Fields **
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
+
+	@Field(() => [MeFollowed], { nullable: true })
+	meFollowed?: MeFollowed[];
 }
 
 @ObjectType()

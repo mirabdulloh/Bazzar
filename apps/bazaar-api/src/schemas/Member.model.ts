@@ -60,6 +60,10 @@ const MemberSchema = new Schema(
 			type: Number,
 			default: 0,
 		},
+		memberProducts: {
+			type: Number,
+			default: 0,
+		},
 		memberFollowings: {
 			type: Number,
 			default: 0,

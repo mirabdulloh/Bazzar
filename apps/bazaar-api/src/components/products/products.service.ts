@@ -45,7 +45,7 @@ export class ProductsService {
 
 		try {
 			const result = await this.productModel.create(input);
-			// increment memberProducts stat
+			//! increment memberProducts stat
 			await this.memberService.memberStatsEdits({
 				_id: shapeIntoMongoObjectId(input.memberId),
 				targetKey: 'memberProducts',
