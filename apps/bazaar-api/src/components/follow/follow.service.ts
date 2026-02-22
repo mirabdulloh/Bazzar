@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
 import { Follower, Followers, Following, Followings } from '../../libs/dto/follows/follow';
 import { MemberService } from '../member/member.service';
@@ -17,6 +17,8 @@ import { FollowInquiry } from '../../libs/dto/follows/follow.input';
 
 @Injectable()
 export class FollowService {
+	private readonly logger = new Logger(FollowService.name);
+
 	constructor(
 		@InjectModel('Follow') private readonly followModel: Model<Follower | Following>,
 		private readonly memberService: MemberService,
@@ -45,7 +47,7 @@ export class FollowService {
 			notificationGroup: NotificationGroup.MEMBER,
 			notificationTitle: 'New Follower',
 			notificationContent: 'You have a new follower',
-		}).catch((err) => console.log('Notification error (follow):', err.message));
+		}).catch((err) => this.logger.error('Notification error (follow):', err.message));
 
 		return result;
 	}

@@ -41,7 +41,7 @@ export class CommentService {
 		try {
 			result = await this.commentModel.create(input);
 		} catch (err) {
-			console.log('Error, Service.model:', err.message);
+			this.logger.error('createComment failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 
@@ -82,7 +82,7 @@ export class CommentService {
 								notificationTitle: 'New Comment',
 								notificationContent: 'Someone left a comment on your profile',
 							})
-							.catch((err) => console.log('Notification error (comment):', err.message));
+							.catch((err) => this.logger.error('Notification error (comment):', err.message));
 					}
 					break;
 			}

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
@@ -13,6 +13,8 @@ import { T } from '../../libs/types/common';
 
 @Injectable()
 export class CouponService {
+	private readonly logger = new Logger(CouponService.name);
+
 	constructor(
 		@InjectModel('Coupon') private readonly couponModel: Model<Coupon>,
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
@@ -27,7 +29,7 @@ export class CouponService {
 			const result = await this.couponModel.create(input);
 			return result;
 		} catch (err) {
-			console.log('Error, Service.model:', err.message);
+			this.logger.error('createCoupon failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -82,7 +84,7 @@ export class CouponService {
 			});
 			return result;
 		} catch (err) {
-			console.log('Error, Service.model:', err.message);
+			this.logger.error('createCoupon failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
