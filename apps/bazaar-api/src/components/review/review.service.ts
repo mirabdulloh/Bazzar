@@ -197,10 +197,12 @@ export class ReviewService {
 	}
 
 	public async removeReviewByAdmin(reviewId: ObjectId): Promise<Review> {
-		const target = await this.reviewModel.findById(reviewId).exec();
+		const target = await this.reviewModel.findOne({ _id: reviewId, reviewStatus: ReviewStatus.DELETED }).exec();
 		if (!target) throw new InternalServerErrorException(Message.REMOVE_FAILED);
 
-		const result = await this.reviewModel.findByIdAndDelete(reviewId).exec();
+		const result = await this.reviewModel
+			.findOneAndDelete({ _id: reviewId, reviewStatus: ReviewStatus.DELETED })
+			.exec();
 		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
 
 		// Recalculate product rating — remove this review's contribution
