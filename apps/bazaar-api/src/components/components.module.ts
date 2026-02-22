@@ -13,6 +13,7 @@ import { BoardArticleModule } from './board-article/board-article.module';
 import { CommentModule } from './comment/comment.module';
 import { NoticeModule } from './notice/notice.module';
 import { ReviewModule } from './review/review.module';
+import { CouponModule } from './coupon/coupon.module';
 
 @Module({
 	imports: [
@@ -30,6 +31,7 @@ import { ReviewModule } from './review/review.module';
 		CommentModule,
 		NoticeModule,
 		ReviewModule,
+		CouponModule,
 	],
 })
 export class ComponentsModule {}

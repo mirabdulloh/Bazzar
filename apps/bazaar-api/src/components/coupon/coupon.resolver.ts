@@ -1,0 +1,59 @@
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { CouponService } from './coupon.service';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { MemberType } from '../../libs/enums/member.enum';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
+import { CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
+import { CouponUpdate } from '../../libs/dto/coupons/coupon.update';
+import { shapeIntoMongoObjectId } from '../../libs/config';
+
+@Resolver()
+export class CouponResolver {
+	constructor(private readonly couponService: CouponService) {}
+
+	@UseGuards(AuthGuard)
+	@Query(() => Coupon)
+	public async checkCoupon(@Args('couponCode') couponCode: string): Promise<Coupon> {
+		console.log('Query: checkCoupon');
+		return await this.couponService.checkCoupon(couponCode);
+	}
+
+	/** ADMIN */
+
+	@Roles(MemberType.ADMIN)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Coupon)
+	public async createCouponByAdmin(@Args('input') input: CouponInput): Promise<Coupon> {
+		console.log('Mutation: createCouponByAdmin');
+		return await this.couponService.createCouponByAdmin(input);
+	}
+
+	@Roles(MemberType.ADMIN)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Coupon)
+	public async updateCouponByAdmin(@Args('input') input: CouponUpdate): Promise<Coupon> {
+		console.log('Mutation: updateCouponByAdmin');
+		input._id = shapeIntoMongoObjectId(input._id);
+		return await this.couponService.updateCouponByAdmin(input);
+	}
+
+	@Roles(MemberType.ADMIN)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Query(() => Coupons)
+	public async getAllCouponsByAdmin(@Args('input') input: CouponsInquiry): Promise<Coupons> {
+		console.log('Query: getAllCouponsByAdmin');
+		return await this.couponService.getAllCouponsByAdmin(input);
+	}
+
+	@Roles(MemberType.ADMIN)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Coupon)
+	public async removeCouponByAdmin(@Args('couponId') couponId: string): Promise<Coupon> {
+		console.log('Mutation: removeCouponByAdmin');
+		const id = shapeIntoMongoObjectId(couponId);
+		return await this.couponService.removeCouponByAdmin(id);
+	}
+}
