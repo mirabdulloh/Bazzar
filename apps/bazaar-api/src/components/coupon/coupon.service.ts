@@ -117,8 +117,13 @@ export class CouponService {
 		const member = await this.memberModel.findById(memberId).exec();
 		if (!member) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		// Block only if member currently holds an ACTIVE (unused) coupon
+		// Block if member already holds an ACTIVE coupon
 		if (member.memberCouponId && member.memberCouponStatus === CouponStatus.ACTIVE) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
+
+		// Block re-claiming same coupon even after it was used/expired
+		if (member.memberCouponId && member.memberCouponId.toString() === coupon._id.toString()) {
 			throw new BadRequestException(Message.BAD_REQUEST);
 		}
 

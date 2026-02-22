@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Order, OrdersData } from '../../libs/dto/order/order';
@@ -422,5 +422,41 @@ export class OrderService {
 				limit: input.limit,
 			},
 		};
+	}
+
+	// ! Cancel Order (user-initiated — PENDING orders only)
+	public async cancelOrder(memberId: ObjectId, orderId: ObjectId): Promise<Order> {
+		const order = await this.orderModel
+			.findOne({ _id: orderId, memberId, orderStatus: OrderStatus.PENDING })
+			.exec();
+		if (!order) throw new BadRequestException('Order not found or cannot be cancelled');
+
+		const updated = await this.orderModel
+			.findOneAndUpdate({ _id: orderId }, { orderStatus: OrderStatus.CANCELLED }, { new: true })
+			.exec();
+		if (!updated) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+
+		// Restore stock
+		const orderItems = await this.orderItemModel.find({ orderId }).lean().exec();
+		if (orderItems.length) {
+			await this.productModel.bulkWrite(
+				orderItems.map((item) => ({
+					updateOne: {
+						filter: { _id: item.productId },
+						update: { $inc: { productStockQuantity: item.itemQuantity } },
+					},
+				})),
+			);
+		}
+
+		// Send cancellation email (fire-and-forget)
+		const member = await this.memberService.getMemberById(memberId);
+		if (member?.memberEmail) {
+			this.mailService
+				.sendOrderStatusEmail(member.memberEmail, orderId.toString(), OrderStatus.CANCELLED)
+				.catch((err) => this.logger.error('cancelOrder mail error:', err.message));
+		}
+
+		return updated;
 	}
 }

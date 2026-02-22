@@ -247,6 +247,11 @@ export class MemberService {
 		return result[0];
 	}
 
+	// ! Get Member by ID (internal helper)
+	public async getMemberById(memberId: ObjectId): Promise<Member | null> {
+		return this.memberModel.findById(memberId).lean().exec();
+	}
+
 	// ! Get Members List (Paginated)
 	public async getMembers(input: MembersInquiry): Promise<MembersData> {
 		const page = Math.max(1, input.page ?? 1);

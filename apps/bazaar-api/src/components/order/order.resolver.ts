@@ -28,6 +28,18 @@ export class OrderResolver {
 		return await this.orderService.createOrder(memberId, input);
 	}
 
+	// ! Cancel Order (user — PENDING only)
+	@UseGuards(AuthGuard)
+	@Mutation(() => Order)
+	public async cancelOrder(
+		@Args('orderId') orderId: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Order> {
+		console.log('Mutation: cancelOrder');
+		const id = shapeIntoMongoObjectId(orderId);
+		return this.orderService.cancelOrder(memberId, id);
+	}
+
 	// ! Update Order By Admin
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
