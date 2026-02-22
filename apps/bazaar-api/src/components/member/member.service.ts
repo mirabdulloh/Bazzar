@@ -8,8 +8,10 @@ import {
 import { Model, ObjectId } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
 import { Brand } from '../../libs/dto/brand/brand';
+import { Coupon } from '../../libs/dto/coupons/coupon';
 import { InjectModel } from '@nestjs/mongoose';
 import { BrandStatus } from '../../libs/enums/brand.enum';
+import { CouponStatus, CouponType } from '../../libs/enums/coupons.enum';
 import {
 	BrandInquiry,
 	ChangePasswordInput,
@@ -34,6 +36,7 @@ export class MemberService {
 	constructor(
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		@InjectModel('Brand') private readonly brandModel: Model<Brand>,
+		@InjectModel('Coupon') private readonly couponModel: Model<Coupon>,
 		private authService: AuthService,
 		private likeService: LikeService,
 		private viewService: ViewService,
@@ -55,6 +58,32 @@ export class MemberService {
 					brandLogo: input.brandLogo ?? '',
 					brandStatus: BrandStatus.PENDING,
 				});
+			}
+
+			// Auto-assign WELCOME coupon for new USER members
+			if (result.memberType === MemberType.USER) {
+				const now = new Date();
+				const welcomeCoupon = await this.couponModel
+					.findOne({
+						couponCode: 'WELCOME',
+						couponType: CouponType.PLATFORM,
+						couponStatus: CouponStatus.ACTIVE,
+						couponStartDate: { $lte: now },
+						couponEndDate: { $gte: now },
+					})
+					.exec();
+				if (welcomeCoupon) {
+					const limitOk =
+						welcomeCoupon.couponMaxUsage === undefined ||
+						welcomeCoupon.couponUsageCount < welcomeCoupon.couponMaxUsage;
+					if (limitOk) {
+						await this.memberModel.findByIdAndUpdate(result._id, {
+							memberCouponId: welcomeCoupon._id,
+							memberCouponStatus: CouponStatus.ACTIVE,
+							memberCouponAssignedAt: now,
+						});
+					}
+				}
 			}
 
 			// Authentication via token
