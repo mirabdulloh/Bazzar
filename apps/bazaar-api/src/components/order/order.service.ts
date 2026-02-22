@@ -138,7 +138,7 @@ export class OrderService {
 					notificationTitle: 'Order Confirmed',
 					notificationContent: `Your order of $${orderFinalPrice.toFixed(2)} has been placed successfully`,
 				})
-				.catch((err) => console.log('Notification error (order confirm):', err.message));
+				.catch((err) => this.logger.error('Notification error (order confirm):', err.message));
 
 			// Email order confirmation
 			this.memberService
@@ -147,14 +147,14 @@ export class OrderService {
 					if (m?.memberEmail) {
 						this.mailService
 							.sendOrderConfirmedEmail(m.memberEmail, createdOrder._id.toString(), orderFinalPrice)
-							.catch((err) => console.log('Mail error (order confirm):', err.message));
+							.catch((err) => this.logger.error('Mail error (order confirm):', err.message));
 					}
 				})
 				.catch(() => {});
 
 			return createdOrder;
 		} catch (err) {
-			console.log('Error on createOrder Service', err.message);
+			this.logger.error('createOrder failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -336,7 +336,7 @@ export class OrderService {
 					notificationTitle: 'Order Update',
 					notificationContent: content,
 				})
-				.catch((err) => console.log('Notification error (order update):', err.message));
+				.catch((err) => this.logger.error('Notification error (order update):', err.message));
 
 			// Email order status change
 			if (input.orderStatus) {
@@ -346,7 +346,7 @@ export class OrderService {
 						if (m?.memberEmail) {
 							this.mailService
 								.sendOrderStatusEmail(m.memberEmail, result._id.toString(), input.orderStatus!)
-								.catch((err) => console.log('Mail error (order status):', err.message));
+								.catch((err) => this.logger.error('Mail error (order status):', err.message));
 						}
 					})
 					.catch(() => {});

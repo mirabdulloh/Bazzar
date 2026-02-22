@@ -12,6 +12,8 @@ import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class NoticeService {
+	private readonly logger = new Logger(NoticeService.name);
+
 	constructor(
 		@InjectModel('Notice') private readonly noticeModel: Model<Notice>,
 		@InjectModel('Member') private readonly memberModel: Model<any>,

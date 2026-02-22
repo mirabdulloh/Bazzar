@@ -36,7 +36,7 @@ export class CategoryService {
 			this.invalidateCache();
 			return result;
 		} catch (err) {
-			console.log('Error on createCategory Service', err.message);
+			this.logger.error('createCategory failed:', err.message);
 			if (err?.code === 11000) throw new BadRequestException('Category name already exists under this parent');
 			throw err instanceof NotFoundException ? err : new BadRequestException(Message.CREATE_FAILED);
 		}

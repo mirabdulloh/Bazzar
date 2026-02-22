@@ -28,7 +28,7 @@ export class BrandService {
 			});
 			return result;
 		} catch (err) {
-			console.log('Error on createBrandOnSignup', err.message);
+			this.logger.error('createBrandOnSignup failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}

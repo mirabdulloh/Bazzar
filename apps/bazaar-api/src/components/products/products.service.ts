@@ -55,7 +55,7 @@ export class ProductsService {
 			});
 			return result;
 		} catch (err) {
-			console.log('Error on createProduct Service', err.message);
+			this.logger.error('createProduct failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}

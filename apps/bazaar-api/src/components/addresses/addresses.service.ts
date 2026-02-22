@@ -26,7 +26,7 @@ export class AddressesService {
 			const result = await this.addressModel.create(input);
 			return result;
 		} catch (err) {
-			console.log('Error on createAddress Service', err.message);
+			this.logger.error('createAddress failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
