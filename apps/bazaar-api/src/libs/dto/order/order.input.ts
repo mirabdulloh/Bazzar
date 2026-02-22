@@ -47,6 +47,11 @@ export class CreateOrderInput {
 	@Type(() => CreateOrderItemInput)
 	@Field(() => [CreateOrderItemInput])
 	items: CreateOrderItemInput[];
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	couponCode?: string;
 }
 
 // ! OrderInput - raw order input (used internally)

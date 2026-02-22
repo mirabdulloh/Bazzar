@@ -13,6 +13,7 @@ import { shapeIntoMongoObjectId } from '../../libs/config';
 import { T } from '../../libs/types/common';
 import { MemberService } from '../member/member.service';
 import { ProductsService } from '../products/products.service';
+import { CouponService } from '../coupon/coupon.service';
 
 @Injectable()
 export class OrderService {
@@ -22,11 +23,12 @@ export class OrderService {
 		@InjectModel('Product') private readonly productModel: Model<Product>,
 		private readonly memberService: MemberService,
 		private readonly productsService: ProductsService,
+		private readonly couponService: CouponService,
 	) {}
 
 	// ! CREATE ORDER
 	public async createOrder(memberId: ObjectId, input: CreateOrderInput): Promise<Order> {
-		const { orderDeliveryAddressId, orderPaymentMethod, items } = input;
+		const { orderDeliveryAddressId, orderPaymentMethod, items, couponCode } = input;
 
 		if (!items.length) throw new BadRequestException('Order must have at least one item');
 
@@ -58,13 +60,24 @@ export class OrderService {
 			});
 		}
 
+		// 2. Apply coupon discount if provided
+		let orderTotalDiscountPrice = 0;
+		let orderFinalPrice = orderTotalPrice;
+		let validatedCoupon = null;
+
+		if (couponCode) {
+			validatedCoupon = await this.couponService.checkCoupon(memberId, couponCode);
+			orderTotalDiscountPrice = this.couponService.calculateDiscount(validatedCoupon, orderTotalPrice);
+			orderFinalPrice = orderTotalPrice - orderTotalDiscountPrice;
+		}
+
 		try {
-			// 2. Create the order
+			// 3. Create the order
 			const orderData: T = {
 				memberId,
 				orderTotalPrice,
-				orderTotalDiscountPrice: 0,
-				orderFinalPrice: orderTotalPrice,
+				orderTotalDiscountPrice,
+				orderFinalPrice,
 				orderDeliveryAddressId: shapeIntoMongoObjectId(orderDeliveryAddressId),
 			};
 			if (orderPaymentMethod) orderData.orderPaymentMethod = orderPaymentMethod;
@@ -90,7 +103,12 @@ export class OrderService {
 				});
 			}
 
-			// 5. Update member points (optional reward)
+			// 5. Mark coupon as used if one was applied
+			if (couponCode && validatedCoupon) {
+				await this.couponService.useCoupon(memberId, couponCode);
+			}
+
+			// 6. Update member points (optional reward)
 			await this.memberService.memberStatsEdits({
 				_id: memberId,
 				targetKey: 'memberPoints',

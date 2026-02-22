@@ -8,6 +8,7 @@ import { OrderResolver } from './order.resolver';
 import { AuthModule } from '../auth/auth.module';
 import { MemberModule } from '../member/member.module';
 import { ProductsModule } from '../products/products.module';
+import { CouponModule } from '../coupon/coupon.module';
 
 @Module({
 	imports: [
@@ -19,6 +20,7 @@ import { ProductsModule } from '../products/products.module';
 		AuthModule,
 		MemberModule,
 		ProductsModule,
+		CouponModule,
 	],
 	providers: [OrderService, OrderResolver],
 	exports: [OrderService],
