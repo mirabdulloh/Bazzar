@@ -3,6 +3,7 @@ import {
 	ForbiddenException,
 	Injectable,
 	InternalServerErrorException,
+	Logger,
 	NotFoundException,
 	UnauthorizedException,
 } from '@nestjs/common';
@@ -35,6 +36,8 @@ import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class MemberService {
+	private readonly logger = new Logger(MemberService.name);
+
 	constructor(
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		@InjectModel('Brand') private readonly brandModel: Model<Brand>,
@@ -92,7 +95,7 @@ export class MemberService {
 			if (result.memberType === MemberType.USER && result.memberEmail) {
 				this.mailService
 					.sendWelcomeEmail(result.memberEmail, result.memberNick)
-					.catch((err) => console.log('Mail error (welcome):', err.message));
+					.catch((err) => this.logger.error('Mail error (welcome):', err.message));
 			}
 
 			// Authentication via token
@@ -100,7 +103,7 @@ export class MemberService {
 			result.refreshToken = await this.issueRefreshToken(result._id.toString());
 			return result;
 		} catch (err) {
-			console.log('Error on SignUP Service', err.message);
+			this.logger.error('signup failed:', err.message);
 			if (err?.code === 11000) {
 				throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE);
 			}
@@ -174,12 +177,10 @@ export class MemberService {
 
 	// ! Get Brands (Paginated List)
 	public async getBrands(memberId: ObjectId, input: BrandInquiry): Promise<MembersData> {
-		console.log('MemberService: getAgents');
 		const { text } = input.search;
 		const match: T = { memberType: MemberType.BRAND, memberStatus: MemberStatus.ACTIVE };
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 		if (text) match.memberNick = { $regex: new RegExp(text, 'i') };
-		console.log('match =>', match);
 
 		const result = await this.memberModel.aggregate([
 			{ $match: match },
@@ -191,7 +192,6 @@ export class MemberService {
 				},
 			},
 		]);
-		console.log('getAgents Result =>', result);
 		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 		const list = result[0]?.list ?? [];
 		const total = result[0]?.metaCounter?.[0]?.total ?? 0;
@@ -432,14 +432,12 @@ export class MemberService {
 	}
 
 	public async getAllMembersByAdmin(input: MembersInquiry): Promise<MembersData> {
-		console.log('MemberService: getAgents');
 		const { memberStatus, memberType, text } = input.search;
 		const match: T = {};
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 		if (memberStatus) match.memberStatus = memberStatus;
 		if (memberType) match.memberType = memberType;
 		if (text) match.memberNick = { $regex: new RegExp(text, 'i') };
-		console.log('match =>', match);
 
 		const result = await this.memberModel.aggregate([
 			{ $match: match },
@@ -451,7 +449,6 @@ export class MemberService {
 				},
 			},
 		]);
-		console.log('getAgents Result =>', result);
 		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 
 		const list = result[0]?.list ?? [];
@@ -468,7 +465,6 @@ export class MemberService {
 	}
 
 	public async memberStatsEdits(input: StatisticModifier): Promise<Member> {
-		console.log('Executed');
 		const { _id, targetKey, modifier } = input;
 		return await this.memberModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
 	}
