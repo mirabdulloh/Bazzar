@@ -172,6 +172,48 @@ export class MemberService {
 		return true;
 	}
 
+	// ! Forgot Password
+	public async forgotPassword(email: string): Promise<boolean> {
+		const member = await this.memberModel.findOne({ memberEmail: email }).exec();
+		if (!member) return true; // silent — don't leak email existence
+		const token = crypto.randomBytes(32).toString('hex');
+		const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+		await this.memberModel.updateOne(
+			{ _id: member._id },
+			{ passwordResetToken: token, passwordResetTokenExpiresAt: expiresAt },
+		);
+		this.mailService
+			.sendPasswordResetEmail(email, token)
+			.catch((err) => this.logger.error('Mail error (password reset):', err.message));
+		return true;
+	}
+
+	// ! Reset Password
+	public async resetPassword(token: string, newPassword: string): Promise<boolean> {
+		const member = await this.memberModel
+			.findOne({
+				passwordResetToken: token,
+				passwordResetTokenExpiresAt: { $gt: new Date() },
+			})
+			.select('+passwordResetToken +passwordResetTokenExpiresAt')
+			.exec();
+		if (!member) throw new BadRequestException('Invalid or expired reset token');
+		const hashed = await this.authService.hashPassword(newPassword);
+		await this.memberModel.updateOne(
+			{ _id: member._id },
+			{
+				memberPassword: hashed,
+				$unset: {
+					passwordResetToken: '',
+					passwordResetTokenExpiresAt: '',
+					refreshToken: '',
+					refreshTokenExpiresAt: '',
+				},
+			},
+		);
+		return true;
+	}
+
 	// 	const { page, limit, sort = 'createdAt', direction = -1, search } = input;
 
 	// 	const query: any = {};

@@ -64,6 +64,23 @@ export class MemberResolver {
 		return this.memberService.verifyEmail(token);
 	}
 
+	// ! Forgot Password
+	@Mutation(() => Boolean)
+	public async forgotPassword(@Args('email') email: string): Promise<boolean> {
+		console.log('Mutation: forgotPassword');
+		return this.memberService.forgotPassword(email);
+	}
+
+	// ! Reset Password
+	@Mutation(() => Boolean)
+	public async resetPassword(
+		@Args('token') token: string,
+		@Args('newPassword') newPassword: string,
+	): Promise<boolean> {
+		console.log('Mutation: resetPassword');
+		return this.memberService.resetPassword(token, newPassword);
+	}
+
 	// ! Logout
 	@Mutation(() => Boolean)
 	@UseGuards(AuthGuard)
