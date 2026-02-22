@@ -25,7 +25,6 @@ export class OrderResolver {
 		@Args('input') input: CreateOrderInput,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Order> {
-		console.log('Mutation: createOrder');
 		return await this.orderService.createOrder(memberId, input);
 	}
 
@@ -34,7 +33,6 @@ export class OrderResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Order)
 	public async updateOrderByAdmin(@Args('input') input: OrderUpdate): Promise<Order> {
-		console.log('Mutation: updateOrderByAdmin');
 		return await this.orderService.updateOrderByAdmin(input);
 	}
 
@@ -44,7 +42,6 @@ export class OrderResolver {
 	@UseGuards(AuthGuard)
 	@Query(() => Order)
 	public async getOrder(@Args('orderId') input: string, @AuthMember('_id') memberId: ObjectId): Promise<Order> {
-		console.log('Query: getOrder');
 		const orderId = shapeIntoMongoObjectId(input);
 		return await this.orderService.getOrder(memberId, orderId);
 	}
@@ -56,7 +53,6 @@ export class OrderResolver {
 		@Args('input') input: MyOrdersInquiry,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<OrdersData> {
-		console.log('Query: getMyOrders');
 		return await this.orderService.getMyOrders(memberId, input);
 	}
 
@@ -65,7 +61,6 @@ export class OrderResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => OrdersData)
 	public async getAllOrdersByAdmin(@Args('input') input: AllOrdersInquiry): Promise<OrdersData> {
-		console.log('Query: getAllOrdersByAdmin');
 		return await this.orderService.getAllOrdersByAdmin(input);
 	}
 }

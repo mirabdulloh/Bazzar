@@ -8,7 +8,7 @@ import {
 	MemberInput,
 	MembersInquiry,
 } from '../../libs/dto/member/member.input';
-import { UseGuards } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { MemberUpdate, MemberUpdateByAdmin } from '../../libs/dto/member/member.update';
@@ -24,19 +24,21 @@ import { ObjectId } from 'mongoose';
 
 @Resolver()
 export class MemberResolver {
+	private readonly logger = new Logger(MemberResolver.name);
+
 	constructor(private readonly memberService: MemberService) {}
 
 	// ! Sign Up
 	@Mutation(() => Member)
 	public async signup(@Args('input') input: MemberInput): Promise<Member> {
-		console.log('Mutation: signup');
+		this.logger.log('Mutation: signup');
 		return this.memberService.signup(input);
 	}
 
 	// ! Login
 	@Mutation(() => Member)
 	public async login(@Args('input') input: LoginInput): Promise<Member> {
-		console.log('Mutation: login');
+		this.logger.log('Mutation: login');
 		return this.memberService.login(input);
 	}
 

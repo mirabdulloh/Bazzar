@@ -36,7 +36,7 @@ export class NoticeService {
 							if (m.memberEmail) {
 								this.mailService
 									.sendNoticeEmail(m.memberEmail, input.noticeTitle, input.noticeContent)
-									.catch((err) => console.log('Mail error (notice broadcast):', err.message));
+									.catch((err) => this.logger.error('Mail error (notice broadcast):', err.message));
 							}
 						});
 					})
@@ -45,7 +45,7 @@ export class NoticeService {
 
 			return result;
 		} catch (err) {
-			console.log('Error, Service.model:', err.message);
+			this.logger.error('createNoticeByAdmin failed:', err.message);
 			throw new InternalServerErrorException(Message.CREATE_FAILED);
 		}
 	}
