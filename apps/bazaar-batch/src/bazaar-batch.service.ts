@@ -24,12 +24,20 @@ export class BatchService {
 
 	public async batchTopProducts(): Promise<void> {
 		console.log('Executing batchTopProducts...');
-		const products = await this.productModel.find({ productStatus: ProductStatus.ACTIVE, productRank: 0 }).exec();
+		const products = await this.productModel
+			.find({ productStatus: ProductStatus.ACTIVE, productRank: 0 })
+			.lean()
+			.exec();
 
-		await Promise.all(
-			products.map((p) =>
-				this.productModel.updateOne({ _id: p._id }, { productRank: p.productLikes * 2 + p.productViews * 1 }),
-			),
+		if (!products.length) return;
+
+		await this.productModel.bulkWrite(
+			products.map((p) => ({
+				updateOne: {
+					filter: { _id: p._id },
+					update: { $set: { productRank: p.productLikes * 2 + p.productViews * 1 } },
+				},
+			})),
 		);
 	}
 
@@ -37,17 +45,22 @@ export class BatchService {
 		console.log('Executing batchTopBrands...');
 		const brands = await this.memberModel
 			.find({ memberStatus: MemberStatus.ACTIVE, memberType: MemberType.BRAND, memberRank: 0 })
+			.lean()
 			.exec();
 
-		await Promise.all(
-			brands.map((b) =>
-				this.memberModel.updateOne(
-					{ _id: b._id },
-					{
-						memberRank: b.memberProducts * 5 + b.memberLikes * 2 + b.memberFollowers * 3 + b.memberViews * 1,
+		if (!brands.length) return;
+
+		await this.memberModel.bulkWrite(
+			brands.map((b) => ({
+				updateOne: {
+					filter: { _id: b._id },
+					update: {
+						$set: {
+							memberRank: b.memberProducts * 5 + b.memberLikes * 2 + b.memberFollowers * 3 + b.memberViews * 1,
+						},
 					},
-				),
-			),
+				},
+			})),
 		);
 	}
 
