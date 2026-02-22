@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
@@ -12,6 +12,8 @@ import { T } from '../../libs/types/common';
 
 @Injectable()
 export class NotificationService {
+	private readonly logger = new Logger(NotificationService.name);
+
 	constructor(
 		@InjectModel('Notification') private readonly notificationModel: Model<Notification>,
 		private readonly socketGateway: SocketGateway,
@@ -26,7 +28,7 @@ export class NotificationService {
 			this.socketGateway.emitToUser(input.receiverId.toString(), 'notification', result);
 			return result;
 		} catch (err) {
-			console.log('Error, NotificationService.createNotification:', err.message);
+			this.logger.error('createNotification failed:', err.message);
 			throw new InternalServerErrorException(Message.CREATE_FAILED);
 		}
 	}

@@ -16,7 +16,6 @@ export class FollowResolver {
 	@UseGuards(AuthGuard)
 	@Mutation(() => Follower)
 	public async subscribe(@Args('input') input: string, @AuthMember('_id') memberId: ObjectId): Promise<Follower> {
-		console.log('Mutation: subscribe');
 		const followingId = shapeIntoMongoObjectId(input);
 		return await this.followService.subscribe(memberId, followingId);
 	}
@@ -24,7 +23,6 @@ export class FollowResolver {
 	@UseGuards(AuthGuard)
 	@Mutation(() => Follower)
 	public async unsubscribe(@Args('input') input: string, @AuthMember('_id') memberId: ObjectId): Promise<Follower> {
-		console.log('Mutation: unsubscribe');
 		const followingId = shapeIntoMongoObjectId(input);
 		return await this.followService.unsubscribe(memberId, followingId);
 	}
@@ -35,7 +33,6 @@ export class FollowResolver {
 		@Args('input') input: FollowInquiry,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Followings> {
-		console.log('Query: getMemberFollowings');
 		if (input.search?.followerId) {
 			input.search.followerId = shapeIntoMongoObjectId(input.search.followerId);
 		}
@@ -48,7 +45,6 @@ export class FollowResolver {
 		@Args('input') input: FollowInquiry,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Followers> {
-		console.log('Query: getMemberFollowers');
 		if (input.search?.followingId) {
 			input.search.followingId = shapeIntoMongoObjectId(input.search.followingId);
 		}

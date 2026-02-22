@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Message } from '../../libs/enums/common.enum';
@@ -11,6 +11,8 @@ import { ProductsData } from '../../libs/dto/product/product';
 
 @Injectable()
 export class LikeService {
+	private readonly logger = new Logger(LikeService.name);
+
 	constructor(@InjectModel('Like') private readonly likeModel: Model<Like>) {}
 
 	public async toggleLike(input: LikeInput): Promise<number> {
@@ -24,11 +26,10 @@ export class LikeService {
 			try {
 				await this.likeModel.create(input);
 			} catch (err) {
-				console.log('Error on likeService Model', err.message);
+				this.logger.error('toggleLike failed:', err.message);
 				throw new BadRequestException(Message.UPDATE_FAILED);
 			}
 		}
-		console.log(`---Like Modifier---- ${modifier}`);
 
 		return modifier;
 	}
@@ -77,7 +78,6 @@ export class LikeService {
 				},
 			])
 			.exec();
-		console.log('data => ', data);
 		const products = data[0]?.list?.map((ele) => ele.favoriteProduct) ?? [];
 		const total = data[0]?.metaCounter?.[0]?.total ?? 0;
 
