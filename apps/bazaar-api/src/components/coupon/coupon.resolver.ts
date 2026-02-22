@@ -6,19 +6,49 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
-import { CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
+import { Member } from '../../libs/dto/member/member';
+import { BrandCouponInput, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
 import { CouponUpdate } from '../../libs/dto/coupons/coupon.update';
+import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { shapeIntoMongoObjectId } from '../../libs/config';
+import { ObjectId } from 'mongoose';
 
 @Resolver()
 export class CouponResolver {
 	constructor(private readonly couponService: CouponService) {}
 
+	/** USER — validate coupon at checkout (must have claimed it first) */
 	@UseGuards(AuthGuard)
 	@Query(() => Coupon)
-	public async checkCoupon(@Args('couponCode') couponCode: string): Promise<Coupon> {
+	public async checkCoupon(
+		@Args('couponCode') couponCode: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Coupon> {
 		console.log('Query: checkCoupon');
-		return await this.couponService.checkCoupon(couponCode);
+		return await this.couponService.checkCoupon(memberId, couponCode);
+	}
+
+	/** USER — claim a coupon (promo code or brand milestone) */
+	@UseGuards(AuthGuard)
+	@Mutation(() => Member)
+	public async claimCoupon(
+		@Args('couponCode') couponCode: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Member> {
+		console.log('Mutation: claimCoupon');
+		return await this.couponService.claimCoupon(memberId, couponCode);
+	}
+
+	/** BRAND — create a brand-scoped coupon */
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Coupon)
+	public async createBrandCoupon(
+		@Args('input') input: BrandCouponInput,
+		@AuthMember('_id') brandId: ObjectId,
+	): Promise<Coupon> {
+		console.log('Mutation: createBrandCoupon');
+		return await this.couponService.createBrandCoupon(brandId, input);
 	}
 
 	/** ADMIN */
