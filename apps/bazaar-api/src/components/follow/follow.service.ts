@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
 import { Follower, Followers, Following, Followings } from '../../libs/dto/follows/follow';
 import { MemberService } from '../member/member.service';
@@ -25,16 +25,18 @@ export class FollowService {
 
 	public async subscribe(followerId: ObjectId, followingId: ObjectId): Promise<Follower> {
 		if (followerId.toString() === followingId.toString()) {
-			throw new InternalServerErrorException(Message.SELF_SUBSCRIPTION_DENIED);
+			throw new BadRequestException(Message.SELF_SUBSCRIPTION_DENIED);
 		}
 
 		const targetMember = await this.memberService.getMember(null, followingId);
-		if (!targetMember) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!targetMember) throw new BadRequestException(Message.NO_DATA_FOUND);
 
 		const result = await this.registerSubscription(followerId, followingId);
 
-		await this.memberService.memberStatsEdits({ _id: followerId, targetKey: 'memberFollowings', modifier: 1 });
-		await this.memberService.memberStatsEdits({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 });
+		await Promise.all([
+			this.memberService.memberStatsEdits({ _id: followerId, targetKey: 'memberFollowings', modifier: 1 }),
+			this.memberService.memberStatsEdits({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 }),
+		]);
 
 		this.notificationService.createNotification({
 			authorId: followerId,
@@ -42,7 +44,7 @@ export class FollowService {
 			notificationType: NotificationType.FOLLOW,
 			notificationGroup: NotificationGroup.MEMBER,
 			notificationTitle: 'New Follower',
-			notificationContent: `${targetMember.memberNick} now has a new follower`,
+			notificationContent: 'You have a new follower',
 		}).catch((err) => console.log('Notification error (follow):', err.message));
 
 		return result;
@@ -50,7 +52,7 @@ export class FollowService {
 
 	public async unsubscribe(followerId: ObjectId, followingId: ObjectId): Promise<Follower> {
 		const targetMember = await this.memberService.getMember(null, followingId);
-		if (!targetMember) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!targetMember) throw new BadRequestException(Message.NO_DATA_FOUND);
 
 		const result = await this.followModel
 			.findOneAndDelete({
@@ -58,10 +60,12 @@ export class FollowService {
 				followerId: followerId,
 			})
 			.exec();
-		if (!result) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		await this.memberService.memberStatsEdits({ _id: followerId, targetKey: 'memberFollowings', modifier: -1 });
-		await this.memberService.memberStatsEdits({ _id: followingId, targetKey: 'memberFollowers', modifier: -1 });
+		await Promise.all([
+			this.memberService.memberStatsEdits({ _id: followerId, targetKey: 'memberFollowings', modifier: -1 }),
+			this.memberService.memberStatsEdits({ _id: followingId, targetKey: 'memberFollowers', modifier: -1 }),
+		]);
 
 		return result;
 	}
@@ -79,7 +83,7 @@ export class FollowService {
 
 	public async getMemberFollowings(memberId: ObjectId, input: FollowInquiry): Promise<Followings> {
 		const { page, limit, search } = input;
-		if (!search?.followerId) throw new InternalServerErrorException(Message.BAD_REQUEST);
+		if (!search?.followerId) throw new BadRequestException(Message.BAD_REQUEST);
 
 		const match: T = { followerId: search.followerId };
 
@@ -103,13 +107,13 @@ export class FollowService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new BadRequestException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 
 	public async getMemberFollowers(memberId: ObjectId, input: FollowInquiry): Promise<Followers> {
 		const { page, limit, search } = input;
-		if (!search?.followingId) throw new InternalServerErrorException(Message.BAD_REQUEST);
+		if (!search?.followingId) throw new BadRequestException(Message.BAD_REQUEST);
 
 		const match: T = { followingId: search.followingId };
 
@@ -133,7 +137,7 @@ export class FollowService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new BadRequestException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 }

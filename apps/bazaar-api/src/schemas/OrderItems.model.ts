@@ -30,4 +30,7 @@ const OrderItemSchema = new Schema(
 	{ timestamps: true, collection: 'orderItems' },
 );
 
+OrderItemSchema.index({ orderId: 1 });
+OrderItemSchema.index({ productId: 1 });
+
 export default OrderItemSchema;

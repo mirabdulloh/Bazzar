@@ -55,4 +55,7 @@ const OrderSchema = new Schema(
 	{ timestamps: true, collection: 'orders' },
 );
 
+OrderSchema.index({ memberId: 1, createdAt: -1 });
+OrderSchema.index({ memberId: 1, orderStatus: 1 });
+
 export default OrderSchema;
