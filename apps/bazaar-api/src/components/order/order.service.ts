@@ -16,6 +16,7 @@ import { ProductsService } from '../products/products.service';
 import { CouponService } from '../coupon/coupon.service';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class OrderService {
@@ -27,6 +28,7 @@ export class OrderService {
 		private readonly productsService: ProductsService,
 		private readonly couponService: CouponService,
 		private readonly notificationService: NotificationService,
+		private readonly mailService: MailService,
 	) {}
 
 	// ! CREATE ORDER
@@ -130,6 +132,18 @@ export class OrderService {
 					notificationContent: `Your order of $${orderFinalPrice.toFixed(2)} has been placed successfully`,
 				})
 				.catch((err) => console.log('Notification error (order confirm):', err.message));
+
+			// Email order confirmation
+			this.memberService
+				.getMember(null, memberId)
+				.then((m) => {
+					if (m?.memberEmail) {
+						this.mailService
+							.sendOrderConfirmedEmail(m.memberEmail, createdOrder._id.toString(), orderFinalPrice)
+							.catch((err) => console.log('Mail error (order confirm):', err.message));
+					}
+				})
+				.catch(() => {});
 
 			return createdOrder;
 		} catch (err) {
@@ -313,6 +327,20 @@ export class OrderService {
 					notificationContent: content,
 				})
 				.catch((err) => console.log('Notification error (order update):', err.message));
+
+			// Email order status change
+			if (input.orderStatus) {
+				this.memberService
+					.getMember(null, result.memberId as unknown as ObjectId)
+					.then((m) => {
+						if (m?.memberEmail) {
+							this.mailService
+								.sendOrderStatusEmail(m.memberEmail, result._id.toString(), input.orderStatus!)
+								.catch((err) => console.log('Mail error (order status):', err.message));
+						}
+					})
+					.catch(() => {});
+			}
 		}
 
 		return result;
