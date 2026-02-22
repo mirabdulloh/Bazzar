@@ -153,7 +153,7 @@ export class ReviewService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 
@@ -185,7 +185,7 @@ export class ReviewService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 

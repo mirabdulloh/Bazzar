@@ -192,7 +192,7 @@ export class MemberService {
 				},
 			},
 		]);
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		const list = result[0]?.list ?? [];
 		const total = result[0]?.metaCounter?.[0]?.total ?? 0;
 		return {
@@ -215,7 +215,7 @@ export class MemberService {
 		};
 
 		const targetMember = await this.memberModel.findOne(search).lean().exec();
-		if (!targetMember) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!targetMember) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		if (memberId) {
 			const viewInput = {
@@ -243,7 +243,7 @@ export class MemberService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 
@@ -375,7 +375,7 @@ export class MemberService {
 	// ! Like Target Member
 	public async likeTargetMember(memberId: ObjectId, likeRefId: ObjectId): Promise<Member> {
 		const target: Member = await this.memberModel.findOne({ _id: likeRefId, memberStatus: MemberStatus.ACTIVE }).exec();
-		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!target) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		const input: LikeInput = { memberId, likeRefId, likeGroup: LikeGroup.MEMBER };
 		// LIke TOggle
@@ -449,7 +449,7 @@ export class MemberService {
 				},
 			},
 		]);
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		const list = result[0]?.list ?? [];
 		const total = result[0]?.metaCounter?.[0]?.total ?? 0;

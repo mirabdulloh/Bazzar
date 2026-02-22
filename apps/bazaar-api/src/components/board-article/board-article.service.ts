@@ -112,13 +112,13 @@ export class BoardArticleService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 
 	public async likeTargetBoardArticle(memberId: ObjectId, likeRefId: ObjectId): Promise<Article> {
 		const target = await this.boardArticleModel.findOne({ _id: likeRefId, articleStatus: ArticleStatus.ACTIVE }).exec();
-		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!target) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		const input: LikeInput = { memberId, likeRefId, likeGroup: LikeGroup.ARTICLE };
 		const modifier: number = await this.likeService.toggleLike(input);
@@ -155,7 +155,7 @@ export class BoardArticleService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		return result[0];
 	}
 

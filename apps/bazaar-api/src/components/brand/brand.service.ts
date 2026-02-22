@@ -93,7 +93,7 @@ export class BrandService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		return {
 			brands: result[0].list,
@@ -144,7 +144,7 @@ export class BrandService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		return {
 			brands: result[0].list,

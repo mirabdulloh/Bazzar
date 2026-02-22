@@ -75,7 +75,7 @@ export class ProductsService {
 			])
 			.exec();
 
-		if (!targetProduct.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!targetProduct.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		// View tracking + like check in parallel
 		if (memberId) {
@@ -130,7 +130,7 @@ export class ProductsService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		return {
 			products: result[0].list,
@@ -169,7 +169,7 @@ export class ProductsService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		return {
 			products: result[0].list,
@@ -198,7 +198,7 @@ export class ProductsService {
 	// ! LIKE TARGET PRODUCT
 	public async likeTargetProduct(memberId: ObjectId, productId: ObjectId): Promise<Product> {
 		const target = await this.productModel.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE }).exec();
-		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!target) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		const input: LikeInput = { memberId, likeRefId: productId, likeGroup: LikeGroup.PRODUCT };
 		const modifier: number = await this.likeService.toggleLike(input);
@@ -240,7 +240,7 @@ export class ProductsService {
 			])
 			.exec();
 
-		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		return {
 			products: result[0].list,
