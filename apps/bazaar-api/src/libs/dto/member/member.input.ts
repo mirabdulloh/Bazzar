@@ -1,5 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsEmail, IsEnum, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from 'class-validator';
+import { IsEmail, IsEnum, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
 import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enum';
 import { availableAgentSorts, availableMemberSorts } from '../../config';
 import { Direction } from '../../enums/common.enum';
@@ -20,6 +20,9 @@ export class MemberInput {
 
 	@IsNotEmpty()
 	@IsString()
+	@Matches(/^\+?[0-9]{7,15}$/, {
+		message: 'memberPhone must be a valid phone number (7-15 digits, optional leading +)',
+	})
 	@Field(() => String)
 	memberPhone: string;
 

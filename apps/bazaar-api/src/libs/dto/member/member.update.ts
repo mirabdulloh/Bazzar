@@ -1,5 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsDate, IsEnum, IsInt, IsMongoId, IsOptional, IsString, Length, Min } from 'class-validator';
+import { IsDate, IsEnum, IsInt, IsMongoId, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { CouponStatus } from '../../enums/coupons.enum';
 import { MemberAuthType, MemberStatus, MemberType } from '../../enums/member.enum';
@@ -27,6 +27,7 @@ export class MemberUpdateByAdmin {
 
 	@IsOptional()
 	@IsString()
+	@Matches(/^\+?[0-9]{7,15}$/, { message: 'memberPhone must be a valid phone number' })
 	@Field(() => String, { nullable: true })
 	memberPhone?: string;
 
@@ -177,6 +178,7 @@ export class MemberUpdate {
 
 	@IsOptional()
 	@IsString()
+	@Matches(/^\+?[0-9]{7,15}$/, { message: 'memberPhone must be a valid phone number' })
 	@Field(() => String, { nullable: true })
 	memberPhone?: string;
 
