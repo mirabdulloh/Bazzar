@@ -2,8 +2,10 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { Model, ObjectId } from 'mongoose';
 import { Follower, Followers, Following, Followings } from '../../libs/dto/follows/follow';
 import { MemberService } from '../member/member.service';
+import { NotificationService } from '../notification/notification.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
+import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 import {
 	lookupAuthMemberFollowed,
 	lookupAuthMemberLiked,
@@ -18,6 +20,7 @@ export class FollowService {
 	constructor(
 		@InjectModel('Follow') private readonly followModel: Model<Follower | Following>,
 		private readonly memberService: MemberService,
+		private readonly notificationService: NotificationService,
 	) {}
 
 	public async subscribe(followerId: ObjectId, followingId: ObjectId): Promise<Follower> {
