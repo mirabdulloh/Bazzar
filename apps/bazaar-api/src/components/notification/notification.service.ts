@@ -28,10 +28,8 @@ export class NotificationService {
 	public async getMyNotifications(memberId: ObjectId, input: NotificationsInquiry): Promise<Notifications> {
 		const { notificationStatus, notificationType } = input.search ?? {};
 		const match: T = { receiverId: memberId };
-		const sort: T = {
-			[availableNotificationSorts.includes(input?.sort ?? '') ? input.sort! : 'createdAt']:
-				input?.direction ?? Direction.DESC,
-		};
+		const sortKey = availableNotificationSorts.includes(input?.sort ?? '') ? input.sort! : 'createdAt';
+		const sort: T = { [sortKey]: input?.direction ?? Direction.DESC };
 
 		if (notificationStatus) match.notificationStatus = notificationStatus;
 		if (notificationType) match.notificationType = notificationType;
@@ -53,7 +51,7 @@ export class NotificationService {
 									as: 'authorData',
 								},
 							},
-							{ $unwind: { path: '$authorData', preserveNullAndEmpty: true } },
+							{ $unwind: { path: '$authorData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],
 					},
@@ -95,10 +93,8 @@ export class NotificationService {
 	public async getAllNotificationsByAdmin(input: NotificationsInquiry): Promise<Notifications> {
 		const { notificationStatus, notificationType } = input.search ?? {};
 		const match: T = {};
-		const sort: T = {
-			[availableNotificationSorts.includes(input?.sort ?? '') ? input.sort! : 'createdAt']:
-				input?.direction ?? Direction.DESC,
-		};
+		const sortKey = availableNotificationSorts.includes(input?.sort ?? '') ? input.sort! : 'createdAt';
+		const sort: T = { [sortKey]: input?.direction ?? Direction.DESC };
 
 		if (notificationStatus) match.notificationStatus = notificationStatus;
 		if (notificationType) match.notificationType = notificationType;
