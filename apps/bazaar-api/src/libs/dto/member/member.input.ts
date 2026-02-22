@@ -24,6 +24,7 @@ export class MemberInput {
 	memberPhone: string;
 
 	@IsOptional()
+	@IsEmail()
 	@IsString()
 	@Field(() => String, { nullable: true })
 	memberEmail?: string;
