@@ -24,6 +24,11 @@ export class MemberInput {
 	memberPhone: string;
 
 	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	memberEmail?: string;
+
+	@IsOptional()
 	@IsEnum(MemberType)
 	@Field(() => MemberType, { nullable: true })
 	memberType?: MemberType;
