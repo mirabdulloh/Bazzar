@@ -28,15 +28,6 @@ export class BrandResolver {
 		return await this.brandService.updateBrand(memberId, input);
 	}
 
-	// ! Update Brand By Admin (approve PENDING → ACTIVE, or suspend)
-	@Roles(MemberType.ADMIN)
-	@UseGuards(AuthGuard, RolesGuard)
-	@Mutation(() => Brand)
-	public async updateBrandByAdmin(@Args('input') input: BrandUpdateByAdmin): Promise<Brand> {
-		console.log('Mutation: updateBrandByAdmin');
-		return await this.brandService.updateBrandByAdmin(input);
-	}
-
 	// * QUERIES *
 
 	// ! Get My Brand (brand member sees their own brand, including PENDING status)
@@ -72,5 +63,14 @@ export class BrandResolver {
 	public async getAllBrandsByAdmin(@Args('input') input: AllBrandsInquiry): Promise<BrandsData> {
 		console.log('Query: getAllBrandsByAdmin');
 		return await this.brandService.getAllBrandsByAdmin(input);
+	}
+
+	// ! Update Brand By Admin (approve PENDING → ACTIVE, or suspend)
+	@Roles(MemberType.ADMIN)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Brand)
+	public async updateBrandByAdmin(@Args('input') input: BrandUpdateByAdmin): Promise<Brand> {
+		console.log('Mutation: updateBrandByAdmin');
+		return await this.brandService.updateBrandByAdmin(input);
 	}
 }

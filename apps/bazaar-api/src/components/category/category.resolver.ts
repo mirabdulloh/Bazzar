@@ -8,12 +8,19 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
-import { ObjectId } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
 @Resolver()
 export class CategoryResolver {
 	constructor(private readonly categoryService: CategoryService) {}
+	// * PUBLIC QUERIES *
+
+	// ! Get Categories (public — ACTIVE only, flat list)
+	@Query(() => [Category])
+	public async getCategories(): Promise<Category[]> {
+		console.log('Query: getCategories');
+		return await this.categoryService.getCategories();
+	}
 
 	// * ADMIN MUTATIONS *
 
@@ -43,15 +50,6 @@ export class CategoryResolver {
 		console.log('Mutation: deleteCategory');
 		const categoryId = shapeIntoMongoObjectId(input);
 		return await this.categoryService.deleteCategory(categoryId);
-	}
-
-	// * PUBLIC QUERIES *
-
-	// ! Get Categories (public — ACTIVE only, flat list)
-	@Query(() => [Category])
-	public async getCategories(): Promise<Category[]> {
-		console.log('Query: getCategories');
-		return await this.categoryService.getCategories();
 	}
 
 	// ! Get All Categories By Admin (including inactive)

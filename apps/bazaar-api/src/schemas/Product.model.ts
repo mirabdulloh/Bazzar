@@ -80,6 +80,11 @@ const ProductSchema = new Schema(
 			default: 0,
 		},
 
+		productReviews: {
+			type: Number,
+			default: 0,
+		},
+
 		productDesc: {
 			type: String,
 		},
@@ -93,7 +98,6 @@ const ProductSchema = new Schema(
 			type: String,
 			required: true,
 		},
-
 		productMaterials: {
 			type: String,
 		},

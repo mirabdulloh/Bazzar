@@ -1,5 +1,17 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { IsArray, IsEnum, IsIn, IsInt, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+	IsArray,
+	IsEnum,
+	IsIn,
+	IsInt,
+	IsMongoId,
+	IsNotEmpty,
+	IsNumber,
+	IsOptional,
+	IsString,
+	Max,
+	Min,
+} from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { ReviewStatus } from '../../enums/review.enum';
 import { availableReviewSorts } from '../../config';
@@ -78,8 +90,9 @@ export class ReviewsInquiry {
 	@Field(() => Direction, { nullable: true })
 	direction?: Direction;
 
-	@Field(() => ReviewSearch)
-	search: ReviewSearch;
+	@IsOptional()
+	@Field(() => ReviewSearch, { nullable: true })
+	search?: ReviewSearch;
 }
 
 @InputType()

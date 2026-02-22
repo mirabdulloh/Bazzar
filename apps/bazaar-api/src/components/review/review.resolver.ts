@@ -8,7 +8,7 @@ import { MemberType } from '../../libs/enums/member.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Review, Reviews } from '../../libs/dto/review/review';
 import { ReviewInput, ReviewsInquiry, AllReviewsInquiry } from '../../libs/dto/review/review.input';
-import { ReviewUpdate } from '../../libs/dto/review/review.update';
+import { ReviewUpdate, ReviewUpdateByAdmin } from '../../libs/dto/review/review.update';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { ObjectId } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/config';
@@ -44,7 +44,9 @@ export class ReviewResolver {
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Reviews> {
 		console.log('Query: getReviews');
-		input.search.productId = shapeIntoMongoObjectId(input.search.productId);
+		if (input.search) {
+			input.search.productId = shapeIntoMongoObjectId(input.search.productId);
+		}
 		return await this.reviewService.getReviews(memberId, input);
 	}
 
@@ -62,7 +64,7 @@ export class ReviewResolver {
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Review)
-	public async updateReviewByAdmin(@Args('input') input: ReviewUpdate): Promise<Review> {
+	public async updateReviewByAdmin(@Args('input') input: ReviewUpdateByAdmin): Promise<Review> {
 		console.log('Mutation: updateReviewByAdmin');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.reviewService.updateReviewByAdmin(input);

@@ -5,7 +5,7 @@ import { Direction, Message } from '../../libs/enums/common.enum';
 import { ReviewStatus } from '../../libs/enums/review.enum';
 import { ReviewInput, ReviewsInquiry, AllReviewsInquiry } from '../../libs/dto/review/review.input';
 import { Review, Reviews } from '../../libs/dto/review/review';
-import { ReviewUpdate } from '../../libs/dto/review/review.update';
+import { ReviewUpdate, ReviewUpdateByAdmin } from '../../libs/dto/review/review.update';
 import { Product } from '../../libs/dto/product/product';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
 import { T } from '../../libs/types/common';
@@ -106,8 +106,9 @@ export class ReviewService {
 	}
 
 	public async getReviews(_memberId: ObjectId, input: ReviewsInquiry): Promise<Reviews> {
-		const { productId } = input.search;
-		const match: T = { productId, reviewStatus: ReviewStatus.ACTIVE };
+		const { productId } = input.search || {};
+		const match: T = { reviewStatus: ReviewStatus.ACTIVE };
+		if (productId) match.productId = productId;
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
 		const result = await this.reviewModel
@@ -164,7 +165,7 @@ export class ReviewService {
 		return result[0];
 	}
 
-	public async updateReviewByAdmin(input: ReviewUpdate): Promise<Review> {
+	public async updateReviewByAdmin(input: ReviewUpdateByAdmin): Promise<Review> {
 		const { _id } = input;
 		const result = await this.reviewModel
 			.findOneAndUpdate({ _id, reviewStatus: { $ne: ReviewStatus.DELETED } }, input, { new: true })

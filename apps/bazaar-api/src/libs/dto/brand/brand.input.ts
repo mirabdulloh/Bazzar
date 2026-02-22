@@ -97,7 +97,7 @@ export class AllBrandsInquiry {
 	@Field(() => Direction, { nullable: true })
 	direction?: Direction;
 
-	@IsNotEmpty()
-	@Field(() => AllBrandsSearch)
-	search: AllBrandsSearch;
+	@IsOptional()
+	@Field(() => AllBrandsSearch, { nullable: true })
+	search?: AllBrandsSearch;
 }

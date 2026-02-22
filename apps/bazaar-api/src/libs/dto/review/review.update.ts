@@ -26,6 +26,13 @@ export class ReviewUpdate {
 	@IsString({ each: true })
 	@Field(() => [String], { nullable: true })
 	reviewImages?: string[];
+}
+
+@InputType()
+export class ReviewUpdateByAdmin {
+	@IsMongoId()
+	@Field(() => String)
+	_id: ObjectId;
 
 	@IsOptional()
 	@IsEnum(ReviewStatus)

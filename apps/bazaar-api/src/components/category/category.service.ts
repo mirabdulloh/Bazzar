@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Category } from '../../libs/dto/category/category';
@@ -68,11 +68,7 @@ export class CategoryService {
 	// ! DELETE CATEGORY (Admin only — soft delete: set INACTIVE + deletedAt)
 	public async deleteCategory(categoryId: ObjectId): Promise<Category> {
 		const result = await this.categoryModel
-			.findByIdAndUpdate(
-				categoryId,
-				{ categoryStatus: CategoryStatus.INACTIVE, deletedAt: new Date() },
-				{ new: true },
-			)
+			.findByIdAndUpdate(categoryId, { categoryStatus: CategoryStatus.INACTIVE, deletedAt: new Date() }, { new: true })
 			.exec();
 
 		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
