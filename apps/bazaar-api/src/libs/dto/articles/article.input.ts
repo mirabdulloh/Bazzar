@@ -112,7 +112,7 @@ export class AllArticlesInquiry {
 	@Field(() => Direction, { nullable: true })
 	direction?: Direction;
 
-	@IsNotEmpty()
-	@Field(() => AllArticleSearch)
-	search: AllArticleSearch;
+	@IsOptional()
+	@Field(() => AllArticleSearch, { nullable: true })
+	search?: AllArticleSearch;
 }

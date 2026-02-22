@@ -185,7 +185,6 @@ export class MemberResolver {
 				uploadedImages[index] = url;
 			} catch (err) {
 				console.log('Error, imagesUploader:', err.message);
-				throw new Error(Message.UPLOAD_FAILED);
 			}
 		});
 

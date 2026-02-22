@@ -130,7 +130,7 @@ export class BoardArticleService {
 	/** ADMIN */
 
 	public async getAllBoardArticlesByAdmin(input: AllArticlesInquiry): Promise<Articles> {
-		const { articleStatus, articleCategory } = input.search;
+		const { articleStatus, articleCategory } = input.search ?? {};
 		const match: T = {};
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 

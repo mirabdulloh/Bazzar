@@ -1,10 +1,12 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { CouponStatus, DiscountType } from '../../enums/coupons.enum';
+import { MetaCounter } from '../member/member';
 
 @ObjectType()
 export class Coupon {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
 	couponCode: string;
@@ -35,4 +37,13 @@ export class Coupon {
 
 	@Field(() => Date)
 	updatedAt: Date;
+}
+
+@ObjectType()
+export class Coupons {
+	@Field(() => [Coupon])
+	list: Coupon[];
+
+	@Field(() => [MetaCounter])
+	metaCounter: MetaCounter[];
 }

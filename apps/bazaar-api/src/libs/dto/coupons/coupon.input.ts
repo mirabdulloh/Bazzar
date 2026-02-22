@@ -1,6 +1,8 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { IsDate, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDate, IsEnum, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { CouponStatus, DiscountType } from '../../enums/coupons.enum';
+import { Direction } from '../../enums/common.enum';
+import { availableCouponSorts } from '../../config';
 
 @InputType()
 export class CouponInput {
@@ -21,15 +23,9 @@ export class CouponInput {
 
 	@IsOptional()
 	@IsNumber()
-	@Min(0)
+	@Min(1)
 	@Field(() => Int, { nullable: true })
 	couponMaxUsage?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	couponUsageCount?: number;
 
 	@IsDate()
 	@Field(() => Date)
@@ -43,4 +39,44 @@ export class CouponInput {
 	@IsEnum(CouponStatus)
 	@Field(() => CouponStatus, { nullable: true })
 	couponStatus?: CouponStatus;
+}
+
+@InputType()
+class CouponSearch {
+	@IsOptional()
+	@IsEnum(CouponStatus)
+	@Field(() => CouponStatus, { nullable: true })
+	couponStatus?: CouponStatus;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+@InputType()
+export class CouponsInquiry {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableCouponSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => CouponSearch, { nullable: true })
+	search?: CouponSearch;
 }

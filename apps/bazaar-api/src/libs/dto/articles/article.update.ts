@@ -34,5 +34,4 @@ export class ArticleUpdate {
 	@IsString({ each: true })
 	@Field(() => [String], { nullable: true })
 	articleImages?: string[];
-
 }

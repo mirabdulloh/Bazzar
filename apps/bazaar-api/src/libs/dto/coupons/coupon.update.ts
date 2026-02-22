@@ -1,12 +1,13 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { IsDate, IsEnum, IsMongoId, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { ObjectId } from 'mongoose';
 import { CouponStatus, DiscountType } from '../../enums/coupons.enum';
 
 @InputType()
 export class CouponUpdate {
 	@IsMongoId()
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@IsOptional()
 	@IsString()
@@ -26,15 +27,9 @@ export class CouponUpdate {
 
 	@IsOptional()
 	@IsNumber()
-	@Min(0)
+	@Min(1)
 	@Field(() => Int, { nullable: true })
 	couponMaxUsage?: number;
-
-	@IsOptional()
-	@IsNumber()
-	@Min(0)
-	@Field(() => Int, { nullable: true })
-	couponUsageCount?: number;
 
 	@IsOptional()
 	@IsDate()
