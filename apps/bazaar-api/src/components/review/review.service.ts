@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
@@ -15,6 +15,8 @@ import { lookupMember } from '../../libs/config';
 
 @Injectable()
 export class ReviewService {
+	private readonly logger = new Logger(ReviewService.name);
+
 	constructor(
 		@InjectModel('Review') private readonly reviewModel: Model<Review>,
 		@InjectModel('Product') private readonly productModel: Model<Product>,
@@ -45,7 +47,7 @@ export class ReviewService {
 		try {
 			result = await this.reviewModel.create(input);
 		} catch (err) {
-			console.log('Error, Service.model:', err.message);
+			this.logger.error('createReview failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 
@@ -82,7 +84,7 @@ export class ReviewService {
 					notificationTitle: 'New Product Review',
 					notificationContent: `A new ${input.reviewRating}-star review was posted on your product`,
 				})
-				.catch((err) => console.log('Notification error (review):', err.message));
+				.catch((err) => this.logger.error('Notification error (review):', err.message));
 		}
 
 		if (!result) throw new InternalServerErrorException(Message.CREATE_FAILED);

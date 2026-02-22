@@ -15,7 +15,6 @@ export class ViewService {
 	public async recordView(input: ViewInput): Promise<View | null> {
 		const viewExist = await this.checkViewExistence(input);
 		if (!viewExist) {
-			console.log('- New View Insert -');
 			return await this.viewModel.create(input);
 		} else return null;
 	}
@@ -64,7 +63,6 @@ export class ViewService {
 				},
 			])
 			.exec();
-		console.log('data => ', data);
 		const products = data[0]?.list?.map((ele) => ele.visitedProduct) ?? [];
 		const total = data[0]?.metaCounter?.[0]?.total ?? 0;
 
