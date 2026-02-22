@@ -4,8 +4,10 @@ import { Model, ObjectId } from 'mongoose';
 import { MemberService } from '../member/member.service';
 import { ProductsService } from '../products/products.service';
 import { BoardArticleService } from '../board-article/board-article.service';
+import { NotificationService } from '../notification/notification.service';
 import { CommentGroup, CommentStatus } from '../../libs/enums/comments.enum';
 import { Direction, Message } from '../../libs/enums/common.enum';
+import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 import { CommentInput, CommentsInquiry } from '../../libs/dto/comments/comment.input';
 import { Comment, Comments } from '../../libs/dto/comments/comment';
 import { CommentUpdate } from '../../libs/dto/comments/comment.update';
@@ -19,6 +21,7 @@ export class CommentService {
 		private readonly memberService: MemberService,
 		private readonly productsService: ProductsService,
 		private readonly boardArticleService: BoardArticleService,
+		private readonly notificationService: NotificationService,
 	) {}
 
 	public async createComment(memberId: ObjectId, input: CommentInput): Promise<Comment> {
@@ -65,6 +68,20 @@ export class CommentService {
 						targetKey: 'memberComments',
 						modifier: 1,
 					});
+					// Notify the member that someone commented on their profile
+					if (memberId.toString() !== input.commentRefId.toString()) {
+						this.notificationService
+							.createNotification({
+								authorId: memberId,
+								receiverId: input.commentRefId,
+								notificationType: NotificationType.OTHER,
+								notificationGroup: NotificationGroup.MEMBER,
+								targetId: result._id as unknown as ObjectId,
+								notificationTitle: 'New Comment',
+								notificationContent: 'Someone left a comment on your profile',
+							})
+							.catch((err) => console.log('Notification error (comment):', err.message));
+					}
 					break;
 			}
 		}
