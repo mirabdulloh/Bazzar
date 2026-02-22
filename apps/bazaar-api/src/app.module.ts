@@ -1,3 +1,4 @@
+import depthLimit from 'graphql-depth-limit';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,6 +21,7 @@ import { SocketModule } from './socket/socket.module';
 			uploads: false,
 			autoSchemaFile: true,
 			csrfPrevention: true,
+			validationRules: [depthLimit(7)],
 			formatError: (error: T) => {
 				const graphQLFormattedError = {
 					code: error?.extensions?.code,
