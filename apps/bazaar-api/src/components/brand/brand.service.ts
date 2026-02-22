@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Brand, BrandsData } from '../../libs/dto/brand/brand';
@@ -11,6 +11,8 @@ import { T } from '../../libs/types/common';
 
 @Injectable()
 export class BrandService {
+	private readonly logger = new Logger(BrandService.name);
+
 	constructor(@InjectModel('Brand') private readonly brandModel: Model<Brand>) {}
 
 	// ! AUTO-CREATE BRAND ON SIGNUP (called from MemberService when memberType = BRAND)

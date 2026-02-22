@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Order, OrdersData } from '../../libs/dto/order/order';
@@ -19,6 +19,8 @@ import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class OrderService {
+	private readonly logger = new Logger(OrderService.name);
+
 	constructor(
 		@InjectModel('Order') private readonly orderModel: Model<Order>,
 		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Category } from '../../libs/dto/category/category';
@@ -10,6 +10,8 @@ import { shapeIntoMongoObjectId } from '../../libs/config';
 
 @Injectable()
 export class CategoryService {
+	private readonly logger = new Logger(CategoryService.name);
+
 	constructor(@InjectModel('Category') private readonly categoryModel: Model<Category>) {}
 
 	private categoryCache: Category[] | null = null;

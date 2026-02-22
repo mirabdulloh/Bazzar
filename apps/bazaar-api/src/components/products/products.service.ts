@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Product, ProductsData } from '../../libs/dto/product/product';
@@ -24,6 +24,8 @@ import { Brand } from '../../libs/dto/brand/brand';
 
 @Injectable()
 export class ProductsService {
+	private readonly logger = new Logger(ProductsService.name);
+
 	constructor(
 		@InjectModel('Product') private readonly productModel: Model<Product>,
 		@InjectModel('Brand') private readonly brandModel: Model<Brand>,

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Address } from '../../libs/dto/addresses/address';
@@ -9,6 +9,8 @@ import { T } from '../../libs/types/common';
 
 @Injectable()
 export class AddressesService {
+	private readonly logger = new Logger(AddressesService.name);
+
 	constructor(@InjectModel('Address') private readonly addressModel: Model<Address>) {}
 
 	// ! CREATE ADDRESS
