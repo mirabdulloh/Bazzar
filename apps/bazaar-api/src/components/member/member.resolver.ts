@@ -57,6 +57,13 @@ export class MemberResolver {
 		return this.memberService.refreshAccessToken(refreshToken);
 	}
 
+	// ! Verify Email
+	@Mutation(() => Boolean)
+	public async verifyEmail(@Args('token') token: string): Promise<boolean> {
+		console.log('Mutation: verifyEmail');
+		return this.memberService.verifyEmail(token);
+	}
+
 	// ! Logout
 	@Mutation(() => Boolean)
 	@UseGuards(AuthGuard)

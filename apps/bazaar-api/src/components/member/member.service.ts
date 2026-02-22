@@ -33,6 +33,7 @@ import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { ViewService } from '../view/view.service';
 import { MailService } from '../mail/mail.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class MemberService {
@@ -91,11 +92,22 @@ export class MemberService {
 				}
 			}
 
-			// Send welcome email for new USER members who provided an email
+			// Email verification / welcome email for USER members
 			if (result.memberType === MemberType.USER && result.memberEmail) {
+				const verifyToken = crypto.randomBytes(32).toString('hex');
+				const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+				await this.memberModel.updateOne(
+					{ _id: result._id },
+					{
+						memberStatus: MemberStatus.PENDING,
+						emailVerificationToken: verifyToken,
+						emailVerificationTokenExpiresAt: verifyExpiry,
+					},
+				);
+				result.memberStatus = MemberStatus.PENDING;
 				this.mailService
-					.sendWelcomeEmail(result.memberEmail, result.memberNick)
-					.catch((err) => this.logger.error('Mail error (welcome):', err.message));
+					.sendEmailVerificationEmail(result.memberEmail, verifyToken)
+					.catch((err) => this.logger.error('Mail error (verify):', err.message));
 			}
 
 			// Authentication via token
@@ -120,6 +132,8 @@ export class MemberService {
 			throw new InternalServerErrorException(Message.NO_MEMBER_NICK);
 		} else if (response.memberStatus === MemberStatus.BLOCK) {
 			throw new InternalServerErrorException(Message.BLOCKED_USER);
+		} else if (response.memberStatus === MemberStatus.PENDING) {
+			throw new ForbiddenException('Please verify your email before logging in');
 		}
 
 		const isMatch = await this.authService.comparePasswords(input.memberPassword, response.memberPassword);
@@ -128,6 +142,34 @@ export class MemberService {
 		response.refreshToken = await this.issueRefreshToken(response._id.toString());
 
 		return response;
+	}
+
+	// ! Verify Email
+	public async verifyEmail(token: string): Promise<boolean> {
+		const member = await this.memberModel
+			.findOne({
+				emailVerificationToken: token,
+				emailVerificationTokenExpiresAt: { $gt: new Date() },
+			})
+			.select('+emailVerificationToken +emailVerificationTokenExpiresAt')
+			.exec();
+		if (!member) throw new BadRequestException('Invalid or expired verification token');
+
+		await this.memberModel.updateOne(
+			{ _id: member._id },
+			{
+				memberStatus: MemberStatus.ACTIVE,
+				emailVerifiedAt: new Date(),
+				$unset: { emailVerificationToken: '', emailVerificationTokenExpiresAt: '' },
+			},
+		);
+
+		if (member.memberEmail) {
+			this.mailService
+				.sendWelcomeEmail(member.memberEmail, member.memberNick)
+				.catch((err) => this.logger.error('Mail error (welcome after verify):', err.message));
+		}
+		return true;
 	}
 
 	// 	const { page, limit, sort = 'createdAt', direction = -1, search } = input;

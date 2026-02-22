@@ -9,6 +9,7 @@ export enum MemberType {
 registerEnumType(MemberType, { name: 'MemberType' });
 
 export enum MemberStatus {
+	PENDING = 'PENDING',
 	ACTIVE = 'ACTIVE',
 	BLOCK = 'BLOCK',
 	DELETE = 'DELETE',

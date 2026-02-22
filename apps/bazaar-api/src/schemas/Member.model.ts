@@ -113,6 +113,25 @@ const MemberSchema = new Schema(
 			type: Date,
 		},
 
+		emailVerificationToken: {
+			type: String,
+			select: false,
+		},
+		emailVerificationTokenExpiresAt: {
+			type: Date,
+			select: false,
+		},
+		emailVerifiedAt: {
+			type: Date,
+		},
+		passwordResetToken: {
+			type: String,
+			select: false,
+		},
+		passwordResetTokenExpiresAt: {
+			type: Date,
+			select: false,
+		},
 		refreshToken: {
 			type: String,
 			select: false,

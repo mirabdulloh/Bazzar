@@ -65,6 +65,24 @@ export class MailService {
 		await this.send(to, msg.subject, `${msg.body}\n\nThe Bazaar Team`);
 	}
 
+	public async sendEmailVerificationEmail(to: string, token: string): Promise<void> {
+		const link = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+		await this.send(
+			to,
+			'Verify your Bazaar email',
+			`Click the link to verify your email:\n\n${link}\n\nThis link expires in 24 hours.\n\nThe Bazaar Team`,
+		);
+	}
+
+	public async sendPasswordResetEmail(to: string, token: string): Promise<void> {
+		const link = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+		await this.send(
+			to,
+			'Reset your Bazaar password',
+			`Click the link to reset your password:\n\n${link}\n\nThis link expires in 1 hour. If you did not request this, ignore this email.\n\nThe Bazaar Team`,
+		);
+	}
+
 	public async sendNoticeEmail(to: string, noticeTitle: string, noticeContent: string): Promise<void> {
 		await this.send(to, `[Bazaar Notice] ${noticeTitle}`, `${noticeContent}\n\nThe Bazaar Team`);
 	}
