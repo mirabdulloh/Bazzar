@@ -1,20 +1,21 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { NotificationGroup, NotificationStatus, NotificationType } from '../../enums/notification.enum';
 import { Member } from '../member/member';
 
 @ObjectType()
 export class Notification {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => String, { nullable: true })
-	authorId?: string;
+	authorId?: ObjectId;
 
 	@Field(() => String)
-	receiverId: string;
+	receiverId: ObjectId;
 
 	@Field(() => NotificationType)
 	notificationType: NotificationType;
@@ -26,7 +27,7 @@ export class Notification {
 	notificationGroup: NotificationGroup;
 
 	@Field(() => String, { nullable: true })
-	targetId?: string;
+	targetId?: ObjectId;
 
 	@Field(() => String)
 	notificationTitle: string;
@@ -46,13 +47,22 @@ export class Notification {
 	@Field(() => Date)
 	updatedAt: Date;
 
-	// ** Relationship Fields **
+	// Relationship
 	@Field(() => Member, { nullable: true })
-	member?: Member;
+	authorData?: Member;
+}
 
-	@Field(() => Member, { nullable: true })
-	author?: Member;
+@ObjectType()
+export class TotalCounter {
+	@Field(() => Int)
+	total: number;
+}
 
-	@Field(() => Member, { nullable: true })
-	receiver?: Member;
+@ObjectType()
+export class Notifications {
+	@Field(() => [Notification])
+	list: Notification[];
+
+	@Field(() => [TotalCounter])
+	metaCounter: TotalCounter[];
 }

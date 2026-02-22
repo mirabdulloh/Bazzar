@@ -27,6 +27,7 @@ export const availableCommentSorts = ['createdAt', 'updatedAt'];
 export const availableNoticeSorts = ['createdAt', 'updatedAt'];
 export const availableReviewSorts = ['createdAt', 'updatedAt', 'reviewRating', 'reviewLikes'];
 export const availableCouponSorts = ['createdAt', 'updatedAt', 'couponStartDate', 'couponEndDate'];
+export const availableNotificationSorts = ['createdAt', 'updatedAt'];
 export const allowedUploadTargets = ['members', 'products', 'article', 'articles', 'reviews'];
 //! IMAGE CONFIGURATION (config.js)
 
