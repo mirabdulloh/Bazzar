@@ -3,20 +3,45 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { NoticeStatus } from '../../libs/enums/notices.enum';
+import { MemberStatus } from '../../libs/enums/member.enum';
 import { NoticeInput, NoticesInquiry } from '../../libs/dto/notices/notice.input';
 import { Notice, Notices } from '../../libs/dto/notices/notice';
 import { NoticeUpdate } from '../../libs/dto/notices/notice.update';
 import { T } from '../../libs/types/common';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class NoticeService {
-	constructor(@InjectModel('Notice') private readonly noticeModel: Model<Notice>) {}
+	constructor(
+		@InjectModel('Notice') private readonly noticeModel: Model<Notice>,
+		@InjectModel('Member') private readonly memberModel: Model<any>,
+		private readonly mailService: MailService,
+	) {}
 
 	/** ADMIN */
 
 	public async createNoticeByAdmin(input: NoticeInput): Promise<Notice> {
 		try {
-			return await this.noticeModel.create(input);
+			const result = await this.noticeModel.create(input);
+
+			if (result.noticeStatus === NoticeStatus.ACTIVE) {
+				this.memberModel
+					.find({ memberStatus: MemberStatus.ACTIVE, memberEmail: { $exists: true, $ne: '' } }, { memberEmail: 1 })
+					.lean()
+					.exec()
+					.then((members) => {
+						members.forEach((m) => {
+							if (m.memberEmail) {
+								this.mailService
+									.sendNoticeEmail(m.memberEmail, input.noticeTitle, input.noticeContent)
+									.catch((err) => console.log('Mail error (notice broadcast):', err.message));
+							}
+						});
+					})
+					.catch(() => {});
+			}
+
+			return result;
 		} catch (err) {
 			console.log('Error, Service.model:', err.message);
 			throw new InternalServerErrorException(Message.CREATE_FAILED);
