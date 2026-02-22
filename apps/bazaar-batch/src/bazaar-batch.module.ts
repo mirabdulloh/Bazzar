@@ -7,6 +7,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
 import ProductSchema from 'apps/bazaar-api/src/schemas/Product.model';
 import MemberSchema from 'apps/bazaar-api/src/schemas/Member.model';
+import CouponSchema from 'apps/bazaar-api/src/schemas/Coupons.model';
+import NotificationSchema from 'apps/bazaar-api/src/schemas/Notifications.model';
 
 @Module({
 	imports: [
@@ -16,6 +18,8 @@ import MemberSchema from 'apps/bazaar-api/src/schemas/Member.model';
 		MongooseModule.forFeature([
 			{ name: 'Product', schema: ProductSchema },
 			{ name: 'Member', schema: MemberSchema },
+			{ name: 'Coupon', schema: CouponSchema },
+			{ name: 'Notification', schema: NotificationSchema },
 		]),
 	],
 	controllers: [BatchController],
