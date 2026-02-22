@@ -14,3 +14,10 @@ export enum CouponStatus {
 }
 
 registerEnumType(CouponStatus, { name: 'CouponStatus' });
+
+export enum CouponType {
+	PLATFORM = 'PLATFORM',
+	BRAND = 'BRAND',
+}
+
+registerEnumType(CouponType, { name: 'CouponType' });

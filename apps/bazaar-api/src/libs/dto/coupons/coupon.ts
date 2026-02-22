@@ -1,6 +1,6 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
-import { CouponStatus, DiscountType } from '../../enums/coupons.enum';
+import { CouponStatus, CouponType, DiscountType } from '../../enums/coupons.enum';
 import { MetaCounter } from '../member/member';
 
 @ObjectType()
@@ -10,6 +10,12 @@ export class Coupon {
 
 	@Field(() => String)
 	couponCode: string;
+
+	@Field(() => CouponType)
+	couponType: CouponType;
+
+	@Field(() => String, { nullable: true })
+	brandId?: ObjectId;
 
 	@Field(() => DiscountType)
 	discountType: DiscountType;
@@ -22,6 +28,9 @@ export class Coupon {
 
 	@Field(() => Int)
 	couponUsageCount: number;
+
+	@Field(() => Int, { nullable: true })
+	minOrderCount?: number;
 
 	@Field(() => Date)
 	couponStartDate: Date;
