@@ -4,6 +4,7 @@ import {
 	Injectable,
 	InternalServerErrorException,
 	NotFoundException,
+	UnauthorizedException,
 } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
@@ -96,7 +97,7 @@ export class MemberService {
 
 			// Authentication via token
 			result.accessToken = await this.authService.createToken(result);
-			console.log('accessToken =>,', result);
+			result.refreshToken = await this.issueRefreshToken(result._id.toString());
 			return result;
 		} catch (err) {
 			console.log('Error on SignUP Service', err.message);
@@ -121,6 +122,7 @@ export class MemberService {
 		const isMatch = await this.authService.comparePasswords(input.memberPassword, response.memberPassword);
 		if (!isMatch) throw new ForbiddenException(Message.WRONG_PASSWORD);
 		response.accessToken = await this.authService.createToken(response);
+		response.refreshToken = await this.issueRefreshToken(response._id.toString());
 
 		return response;
 	}
@@ -469,5 +471,32 @@ export class MemberService {
 		console.log('Executed');
 		const { _id, targetKey, modifier } = input;
 		return await this.memberModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
+	}
+
+	private async issueRefreshToken(memberId: string): Promise<string> {
+		const refreshToken = this.authService.createRefreshToken(memberId);
+		const refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+		await this.memberModel.updateOne({ _id: memberId }, { refreshToken, refreshTokenExpiresAt });
+		return refreshToken;
+	}
+
+	public async refreshAccessToken(token: string): Promise<Member> {
+		let payload: { _id: string };
+		try {
+			payload = this.authService.verifyRefreshToken(token);
+		} catch {
+			throw new UnauthorizedException('Invalid or expired refresh token');
+		}
+
+		const member = await this.memberModel
+			.findOne({ _id: payload._id, refreshToken: token })
+			.select('+refreshToken')
+			.exec();
+
+		if (!member) throw new UnauthorizedException('Refresh token not recognised');
+
+		member.accessToken = await this.authService.createToken(member);
+		member.refreshToken = await this.issueRefreshToken(member._id.toString());
+		return member;
 	}
 }

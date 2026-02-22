@@ -32,4 +32,17 @@ export class AuthService {
 		member._id = shapeIntoMongoObjectId(member._id);
 		return member;
 	}
+
+	public createRefreshToken(memberId: string): string {
+		return this.jwtService.sign(
+			{ _id: memberId },
+			{ secret: process.env.REFRESH_TOKEN_SECRET, expiresIn: '7d' },
+		);
+	}
+
+	public verifyRefreshToken(token: string): { _id: string } {
+		return this.jwtService.verify<{ _id: string }>(token, {
+			secret: process.env.REFRESH_TOKEN_SECRET,
+		});
+	}
 }

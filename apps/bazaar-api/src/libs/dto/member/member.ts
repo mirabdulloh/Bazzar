@@ -122,6 +122,9 @@ export class Member {
 	@Field(() => String, { nullable: true })
 	accessToken?: string;
 
+	@Field(() => String, { nullable: true })
+	refreshToken?: string;
+
 	// ** Relationship Fields **
 	@Field(() => [MeLiked], { nullable: true })
 	meLiked?: MeLiked[];

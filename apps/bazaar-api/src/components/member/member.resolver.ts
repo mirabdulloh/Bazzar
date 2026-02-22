@@ -40,6 +40,13 @@ export class MemberResolver {
 		return this.memberService.login(input);
 	}
 
+	// ! Refresh Token
+	@Mutation(() => Member)
+	public async refreshToken(@Args('refreshToken') refreshToken: string): Promise<Member> {
+		console.log('Mutation: refreshToken');
+		return this.memberService.refreshAccessToken(refreshToken);
+	}
+
 	// ! Update Member Profile
 	@Mutation(() => Member)
 	@UseGuards(AuthGuard)

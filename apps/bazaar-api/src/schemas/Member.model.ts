@@ -113,6 +113,14 @@ const MemberSchema = new Schema(
 			type: Date,
 		},
 
+		refreshToken: {
+			type: String,
+			select: false,
+		},
+		refreshTokenExpiresAt: {
+			type: Date,
+			select: false,
+		},
 		lastLoginAt: {
 			type: Date,
 		},
