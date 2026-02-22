@@ -36,6 +36,15 @@ export class FollowService {
 		await this.memberService.memberStatsEdits({ _id: followerId, targetKey: 'memberFollowings', modifier: 1 });
 		await this.memberService.memberStatsEdits({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 });
 
+		this.notificationService.createNotification({
+			authorId: followerId,
+			receiverId: followingId,
+			notificationType: NotificationType.FOLLOW,
+			notificationGroup: NotificationGroup.MEMBER,
+			notificationTitle: 'New Follower',
+			notificationContent: `${targetMember.memberNick} now has a new follower`,
+		}).catch((err) => console.log('Notification error (follow):', err.message));
+
 		return result;
 	}
 

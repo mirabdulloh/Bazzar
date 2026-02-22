@@ -8,6 +8,8 @@ import { Review, Reviews } from '../../libs/dto/review/review';
 import { ReviewUpdate, ReviewUpdateByAdmin } from '../../libs/dto/review/review.update';
 import { Product } from '../../libs/dto/product/product';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 import { T } from '../../libs/types/common';
 import { lookupMember } from '../../libs/config';
 
@@ -18,6 +20,7 @@ export class ReviewService {
 		@InjectModel('Product') private readonly productModel: Model<Product>,
 		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,
 		@InjectModel('Order') private readonly orderModel: Model<any>,
+		private readonly notificationService: NotificationService,
 	) {}
 
 	public async createReview(memberId: ObjectId, input: ReviewInput): Promise<Review> {
