@@ -14,6 +14,7 @@ import { CommentModule } from './comment/comment.module';
 import { NoticeModule } from './notice/notice.module';
 import { ReviewModule } from './review/review.module';
 import { CouponModule } from './coupon/coupon.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
 	imports: [
@@ -32,6 +33,7 @@ import { CouponModule } from './coupon/coupon.module';
 		NoticeModule,
 		ReviewModule,
 		CouponModule,
+		NotificationModule,
 	],
 })
 export class ComponentsModule {}

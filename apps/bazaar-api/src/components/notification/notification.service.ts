@@ -1,0 +1,129 @@
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, ObjectId } from 'mongoose';
+import { Direction, Message } from '../../libs/enums/common.enum';
+import { NotificationStatus } from '../../libs/enums/notification.enum';
+import { NotificationInput, NotificationsInquiry } from '../../libs/dto/notifications/notification.input';
+import { Notification, Notifications } from '../../libs/dto/notifications/notification';
+import { NotificationUpdate } from '../../libs/dto/notifications/notification.update';
+import { availableNotificationSorts } from '../../libs/config';
+import { T } from '../../libs/types/common';
+
+@Injectable()
+export class NotificationService {
+	constructor(@InjectModel('Notification') private readonly notificationModel: Model<Notification>) {}
+
+	/** INTERNAL — called by other services to push a notification */
+	public async createNotification(input: NotificationInput): Promise<Notification> {
+		try {
+			// memberId mirrors receiverId (the person who receives it)
+			return await this.notificationModel.create({ ...input, memberId: input.receiverId });
+		} catch (err) {
+			console.log('Error, NotificationService.createNotification:', err.message);
+			throw new InternalServerErrorException(Message.CREATE_FAILED);
+		}
+	}
+
+	/** USER — get my notifications (paginated, filterable) */
+	public async getMyNotifications(memberId: ObjectId, input: NotificationsInquiry): Promise<Notifications> {
+		const { notificationStatus, notificationType } = input.search ?? {};
+		const match: T = { receiverId: memberId };
+		const sort: T = {
+			[availableNotificationSorts.includes(input?.sort ?? '') ? input.sort! : 'createdAt']:
+				input?.direction ?? Direction.DESC,
+		};
+
+		if (notificationStatus) match.notificationStatus = notificationStatus;
+		if (notificationType) match.notificationType = notificationType;
+
+		const result = await this.notificationModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							{
+								$lookup: {
+									from: 'members',
+									localField: 'authorId',
+									foreignField: '_id',
+									as: 'authorData',
+								},
+							},
+							{ $unwind: { path: '$authorData', preserveNullAndEmpty: true } },
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		return result[0];
+	}
+
+	/** USER — mark a single notification as read */
+	public async markNotificationAsRead(memberId: ObjectId, input: NotificationUpdate): Promise<Notification> {
+		const { _id } = input;
+		const result = await this.notificationModel
+			.findOneAndUpdate(
+				{ _id, receiverId: memberId },
+				{ notificationStatus: NotificationStatus.READ, readAt: new Date() },
+				{ new: true },
+			)
+			.exec();
+		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+		return result;
+	}
+
+	/** USER — mark all unread notifications as read */
+	public async markAllNotificationsAsRead(memberId: ObjectId): Promise<boolean> {
+		const now = new Date();
+		await this.notificationModel
+			.updateMany(
+				{ receiverId: memberId, notificationStatus: NotificationStatus.UNREAD },
+				{ notificationStatus: NotificationStatus.READ, readAt: now },
+			)
+			.exec();
+		return true;
+	}
+
+	/** ADMIN — paginated list of all notifications */
+	public async getAllNotificationsByAdmin(input: NotificationsInquiry): Promise<Notifications> {
+		const { notificationStatus, notificationType } = input.search ?? {};
+		const match: T = {};
+		const sort: T = {
+			[availableNotificationSorts.includes(input?.sort ?? '') ? input.sort! : 'createdAt']:
+				input?.direction ?? Direction.DESC,
+		};
+
+		if (notificationStatus) match.notificationStatus = notificationStatus;
+		if (notificationType) match.notificationType = notificationType;
+
+		const result = await this.notificationModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		return result[0];
+	}
+
+	/** ADMIN — hard delete a notification */
+	public async removeNotificationByAdmin(notificationId: ObjectId): Promise<Notification> {
+		const result = await this.notificationModel.findByIdAndDelete(notificationId).exec();
+		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
+		return result;
+	}
+}
