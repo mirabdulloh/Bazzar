@@ -31,7 +31,7 @@ import { SocketModule } from './socket/socket.module';
 		}),
 		ComponentsModule,
 		DatabaseModule,
-		// SocketModule,
+		SocketModule,
 	],
 	controllers: [AppController],
 	providers: [AppService, AppResolver],
