@@ -9,11 +9,13 @@ import { AppResolver } from './app.resolver';
 import { ComponentsModule } from './components/components.module';
 import { DatabaseModule } from './database/database.module';
 import { T } from './libs/types/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { SocketModule } from './socket/socket.module';
 
 @Module({
 	imports: [
 		ConfigModule.forRoot(),
+		ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
 		GraphQLModule.forRoot({
 			driver: ApolloDriver,
 			playground: process.env.NODE_ENV !== 'production',

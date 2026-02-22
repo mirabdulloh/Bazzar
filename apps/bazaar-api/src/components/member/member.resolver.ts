@@ -9,7 +9,9 @@ import {
 	MembersInquiry,
 } from '../../libs/dto/member/member.input';
 import { Logger, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../auth/guards/auth.guard';
+import { GqlThrottlerGuard } from '../auth/guards/gql-throttler.guard';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { MemberUpdate, MemberUpdateByAdmin } from '../../libs/dto/member/member.update';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -29,6 +31,8 @@ export class MemberResolver {
 	constructor(private readonly memberService: MemberService) {}
 
 	// ! Sign Up
+	@Throttle({ default: { ttl: 60_000, limit: 5 } })
+	@UseGuards(GqlThrottlerGuard)
 	@Mutation(() => Member)
 	public async signup(@Args('input') input: MemberInput): Promise<Member> {
 		this.logger.log('Mutation: signup');
@@ -36,6 +40,8 @@ export class MemberResolver {
 	}
 
 	// ! Login
+	@Throttle({ default: { ttl: 60_000, limit: 10 } })
+	@UseGuards(GqlThrottlerGuard)
 	@Mutation(() => Member)
 	public async login(@Args('input') input: LoginInput): Promise<Member> {
 		this.logger.log('Mutation: login');
@@ -43,6 +49,8 @@ export class MemberResolver {
 	}
 
 	// ! Refresh Token
+	@Throttle({ default: { ttl: 60_000, limit: 20 } })
+	@UseGuards(GqlThrottlerGuard)
 	@Mutation(() => Member)
 	public async refreshToken(@Args('refreshToken') refreshToken: string): Promise<Member> {
 		console.log('Mutation: refreshToken');
