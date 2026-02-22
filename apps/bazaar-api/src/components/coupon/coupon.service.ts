@@ -115,8 +115,10 @@ export class CouponService {
 		const member = await this.memberModel.findById(memberId).exec();
 		if (!member) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		// Member can only hold one coupon at a time
-		if (member.memberCouponId) throw new BadRequestException(Message.BAD_REQUEST);
+		// Block only if member currently holds an ACTIVE (unused) coupon
+		if (member.memberCouponId && member.memberCouponStatus === CouponStatus.ACTIVE) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
 
 		// Brand milestone check
 		if (coupon.couponType === CouponType.BRAND && coupon.minOrderCount) {
@@ -147,17 +149,18 @@ export class CouponService {
 	 */
 	public async checkCoupon(memberId: ObjectId, couponCode: string): Promise<Coupon> {
 		const now = new Date();
-		const coupon = await this.couponModel
-			.findOne({
-				couponCode,
-				couponStatus: CouponStatus.ACTIVE,
-				couponStartDate: { $lte: now },
-				couponEndDate: { $gte: now },
-			})
-			.exec();
+		const [coupon, member] = await Promise.all([
+			this.couponModel
+				.findOne({
+					couponCode,
+					couponStatus: CouponStatus.ACTIVE,
+					couponStartDate: { $lte: now },
+					couponEndDate: { $gte: now },
+				})
+				.exec(),
+			this.memberModel.findById(memberId).exec(),
+		]);
 		if (!coupon) throw new BadRequestException(Message.NO_DATA_FOUND);
-
-		const member = await this.memberModel.findById(memberId).exec();
 		if (!member) throw new BadRequestException(Message.NO_DATA_FOUND);
 
 		if (!member.memberCouponId || member.memberCouponId.toString() !== coupon._id.toString()) {
@@ -172,46 +175,16 @@ export class CouponService {
 
 	/**
 	 * useCoupon — internal, called by OrderService after order is created.
-	 * Marks the member's coupon as used and increments the coupon usage counter.
+	 * Accepts the coupon ObjectId directly (already resolved by checkCoupon) to avoid an extra DB hit.
 	 */
-	public async useCoupon(memberId: ObjectId, couponCode: string): Promise<void> {
-		const coupon = await this.couponModel.findOne({ couponCode }).exec();
-		if (!coupon) return;
-
+	public async useCoupon(memberId: ObjectId, couponId: ObjectId): Promise<void> {
 		await Promise.all([
 			this.memberModel.findByIdAndUpdate(memberId, {
 				memberCouponStatus: CouponStatus.EXPIRED,
 				memberCouponUsedAt: new Date(),
 			}),
-			this.couponModel.findByIdAndUpdate(coupon._id, { $inc: { couponUsageCount: 1 } }),
+			this.couponModel.findByIdAndUpdate(couponId, { $inc: { couponUsageCount: 1 } }),
 		]);
-	}
-
-	/**
-	 * applyWelcomeCoupon — internal, called by MemberService on USER signup.
-	 * Looks up the WELCOME coupon and assigns it to the new member.
-	 * Silently skips if no WELCOME coupon exists or limit exceeded.
-	 */
-	public async applyWelcomeCoupon(memberId: ObjectId): Promise<void> {
-		const now = new Date();
-		const coupon = await this.couponModel
-			.findOne({
-				couponCode: 'WELCOME',
-				couponType: CouponType.PLATFORM,
-				couponStatus: CouponStatus.ACTIVE,
-				couponStartDate: { $lte: now },
-				couponEndDate: { $gte: now },
-			})
-			.exec();
-
-		if (!coupon) return;
-		if (coupon.couponMaxUsage !== undefined && coupon.couponUsageCount >= coupon.couponMaxUsage) return;
-
-		await this.memberModel.findByIdAndUpdate(memberId, {
-			memberCouponId: coupon._id,
-			memberCouponStatus: CouponStatus.ACTIVE,
-			memberCouponAssignedAt: now,
-		});
 	}
 
 	/** Count distinct orders that contain at least one product from the given brand */

@@ -84,7 +84,7 @@ export class OrderService {
 
 			const createdOrder = await this.orderModel.create(orderData);
 
-			// 3. Create order items
+			// 4. Create order items
 			const orderItems = orderItemsData.map((itemData) => ({
 				orderId: createdOrder._id,
 				productId: itemData.productId,
@@ -104,8 +104,8 @@ export class OrderService {
 			}
 
 			// 5. Mark coupon as used if one was applied
-			if (couponCode && validatedCoupon) {
-				await this.couponService.useCoupon(memberId, couponCode);
+			if (validatedCoupon) {
+				await this.couponService.useCoupon(memberId, validatedCoupon._id as unknown as ObjectId);
 			}
 
 			// 6. Update member points (optional reward)
