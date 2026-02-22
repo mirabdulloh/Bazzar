@@ -1,18 +1,19 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { ObjectId } from 'mongoose';
 import { ChatStatus } from '../../enums/chat.enum';
-import { Member } from '../member/member';
+import { Member, MetaCounter } from '../member/member';
 import { Brand } from '../brand/brand';
 
 @ObjectType()
 export class Chat {
 	@Field(() => String)
-	_id: string;
+	_id: ObjectId;
 
 	@Field(() => String)
-	memberId: string;
+	memberId: ObjectId;
 
 	@Field(() => String)
-	brandId: string;
+	brandId: ObjectId;
 
 	@Field(() => ChatStatus)
 	chatStatus: ChatStatus;
@@ -26,10 +27,19 @@ export class Chat {
 	@Field(() => Date)
 	updatedAt: Date;
 
-	// ** Relationship Fields **
+	// Relationship
 	@Field(() => Member, { nullable: true })
-	member?: Member;
+	memberData?: Member;
 
 	@Field(() => Brand, { nullable: true })
-	brand?: Brand;
+	brandData?: Brand;
+}
+
+@ObjectType()
+export class Chats {
+	@Field(() => [Chat])
+	list: Chat[];
+
+	@Field(() => [MetaCounter])
+	metaCounter: MetaCounter[];
 }
