@@ -49,6 +49,14 @@ export class MemberResolver {
 		return this.memberService.refreshAccessToken(refreshToken);
 	}
 
+	// ! Logout
+	@Mutation(() => Boolean)
+	@UseGuards(AuthGuard)
+	public async logout(@AuthMember('_id') memberId: string): Promise<boolean> {
+		console.log('Mutation: logout');
+		return this.memberService.logout(memberId);
+	}
+
 	// ! Update Member Profile
 	@Mutation(() => Member)
 	@UseGuards(AuthGuard)

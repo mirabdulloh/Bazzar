@@ -365,6 +365,9 @@ export class MemberService {
 		member.memberPassword = hashedPassword;
 		await member.save();
 
+		// Invalidate existing sessions by clearing refresh token
+		await this.memberModel.updateOne({ _id: memberId }, { $unset: { refreshToken: '', refreshTokenExpiresAt: '' } });
+
 		// Return member without password
 		const result = member.toObject();
 		delete result.memberPassword;
@@ -467,6 +470,11 @@ export class MemberService {
 	public async memberStatsEdits(input: StatisticModifier): Promise<Member> {
 		const { _id, targetKey, modifier } = input;
 		return await this.memberModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
+	}
+
+	public async logout(memberId: string): Promise<boolean> {
+		await this.memberModel.updateOne({ _id: memberId }, { $unset: { refreshToken: '', refreshTokenExpiresAt: '' } });
+		return true;
 	}
 
 	private async issueRefreshToken(memberId: string): Promise<string> {
