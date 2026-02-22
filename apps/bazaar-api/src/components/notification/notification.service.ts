@@ -7,17 +7,24 @@ import { NotificationInput, NotificationsInquiry } from '../../libs/dto/notifica
 import { Notification, Notifications } from '../../libs/dto/notifications/notification';
 import { NotificationUpdate } from '../../libs/dto/notifications/notification.update';
 import { availableNotificationSorts } from '../../libs/config';
+import { SocketGateway } from '../../socket/socket.gateway';
 import { T } from '../../libs/types/common';
 
 @Injectable()
 export class NotificationService {
-	constructor(@InjectModel('Notification') private readonly notificationModel: Model<Notification>) {}
+	constructor(
+		@InjectModel('Notification') private readonly notificationModel: Model<Notification>,
+		private readonly socketGateway: SocketGateway,
+	) {}
 
 	/** INTERNAL — called by other services to push a notification */
 	public async createNotification(input: NotificationInput): Promise<Notification> {
 		try {
 			// memberId mirrors receiverId (the person who receives it)
-			return await this.notificationModel.create({ ...input, memberId: input.receiverId });
+			const result = await this.notificationModel.create({ ...input, memberId: input.receiverId });
+			// Real-time push to the receiver if they are online
+			this.socketGateway.emitToUser(input.receiverId.toString(), 'notification', result);
+			return result;
 		} catch (err) {
 			console.log('Error, NotificationService.createNotification:', err.message);
 			throw new InternalServerErrorException(Message.CREATE_FAILED);
