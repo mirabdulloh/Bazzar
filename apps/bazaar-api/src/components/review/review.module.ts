@@ -21,5 +21,6 @@ import { NotificationModule } from '../notification/notification.module';
 		NotificationModule,
 	],
 	providers: [ReviewResolver, ReviewService],
+	exports: [ReviewService],
 })
 export class ReviewModule {}

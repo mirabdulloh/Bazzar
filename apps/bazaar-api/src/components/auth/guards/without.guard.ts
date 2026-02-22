@@ -7,8 +7,6 @@ export class WithoutGuard implements CanActivate {
 	constructor(private authService: AuthService) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		console.info('--- @guard() Authentication [WithoutGuard] ---');
-
 		const ctxType = context.getType<GqlContextType>();
 		const request =
 			ctxType === 'graphql'
@@ -28,7 +26,6 @@ export class WithoutGuard implements CanActivate {
 			request.user = null;
 		}
 
-		console.log('memberNick[without] =>', request.user?.memberNick ?? 'none');
 		return true;
 	}
 }

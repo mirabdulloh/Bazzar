@@ -12,7 +12,6 @@ import { OrderStatus } from '../../libs/enums/order.enum';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 import { T } from '../../libs/types/common';
 import { MemberService } from '../member/member.service';
-import { ProductsService } from '../products/products.service';
 import { CouponService } from '../coupon/coupon.service';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
@@ -25,7 +24,6 @@ export class OrderService {
 		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,
 		@InjectModel('Product') private readonly productModel: Model<Product>,
 		private readonly memberService: MemberService,
-		private readonly productsService: ProductsService,
 		private readonly couponService: CouponService,
 		private readonly notificationService: NotificationService,
 		private readonly mailService: MailService,
@@ -42,10 +40,15 @@ export class OrderService {
 		const orderItemsData: { productId: ObjectId; priceAtPurchase: number; itemQuantity: number; subtotal: number }[] =
 			[];
 
-		for (const item of items) {
-			const productId = shapeIntoMongoObjectId(item.productId);
-			const product = await this.productModel.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE }).exec();
+		const productIds = items.map((item) => shapeIntoMongoObjectId(item.productId));
+		const products = await this.productModel
+			.find({ _id: { $in: productIds }, productStatus: ProductStatus.ACTIVE })
+			.lean()
+			.exec();
+		const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
+		for (const item of items) {
+			const product = productMap.get(item.productId.toString());
 			if (!product) throw new BadRequestException(`Product ${item.productId} not found or not active`);
 			if (product.productStockQuantity < item.itemQuantity) {
 				throw new BadRequestException(
@@ -53,6 +56,7 @@ export class OrderService {
 				);
 			}
 
+			const productId = shapeIntoMongoObjectId(item.productId);
 			const priceAtPurchase = product.productDiscountPrice > 0 ? product.productDiscountPrice : product.productPrice;
 			const subtotal = priceAtPurchase * item.itemQuantity;
 			orderTotalPrice += subtotal;
@@ -99,14 +103,15 @@ export class OrderService {
 			}));
 			await this.orderItemModel.insertMany(orderItems);
 
-			// 4. Decrement product stock
-			for (const itemData of orderItemsData) {
-				await this.productsService.productStatsEdits({
-					_id: itemData.productId,
-					targetKey: 'productStockQuantity',
-					modifier: -itemData.itemQuantity,
-				});
-			}
+			// 4. Decrement product stock (single bulkWrite)
+			await this.productModel.bulkWrite(
+				orderItemsData.map((itemData) => ({
+					updateOne: {
+						filter: { _id: itemData.productId },
+						update: { $inc: { productStockQuantity: -itemData.itemQuantity } },
+					},
+				})),
+			);
 
 			// 5. Mark coupon as used if one was applied
 			if (validatedCoupon) {
@@ -296,15 +301,18 @@ export class OrderService {
 		const result = await this.orderModel.findByIdAndUpdate(orderId, input, { new: true }).exec();
 		if (!result) throw new NotFoundException(Message.UPDATE_FAILED);
 
-		// If order is cancelled, restore stock
+		// If order is cancelled, restore stock (single bulkWrite)
 		if (input.orderStatus === OrderStatus.CANCELLED) {
-			const orderItems = await this.orderItemModel.find({ orderId }).exec();
-			for (const item of orderItems) {
-				await this.productsService.productStatsEdits({
-					_id: item.productId as unknown as ObjectId,
-					targetKey: 'productStockQuantity',
-					modifier: item.itemQuantity,
-				});
+			const orderItems = await this.orderItemModel.find({ orderId }).lean().exec();
+			if (orderItems.length) {
+				await this.productModel.bulkWrite(
+					orderItems.map((item) => ({
+						updateOne: {
+							filter: { _id: item.productId },
+							update: { $inc: { productStockQuantity: item.itemQuantity } },
+						},
+					})),
+				);
 			}
 		}
 

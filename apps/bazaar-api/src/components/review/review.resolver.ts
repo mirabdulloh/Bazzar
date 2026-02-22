@@ -20,7 +20,6 @@ export class ReviewResolver {
 	@UseGuards(AuthGuard)
 	@Mutation(() => Review)
 	public async createReview(@Args('input') input: ReviewInput, @AuthMember('_id') memberId: ObjectId): Promise<Review> {
-		console.log('Mutation: createReview');
 		input.productId = shapeIntoMongoObjectId(input.productId);
 		input.orderItemId = shapeIntoMongoObjectId(input.orderItemId);
 		return await this.reviewService.createReview(memberId, input);
@@ -32,7 +31,6 @@ export class ReviewResolver {
 		@Args('input') input: ReviewUpdate,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Review> {
-		console.log('Mutation: updateReview');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.reviewService.updateReview(memberId, input);
 	}
@@ -43,7 +41,6 @@ export class ReviewResolver {
 		@Args('input') input: ReviewsInquiry,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Reviews> {
-		console.log('Query: getReviews');
 		if (input.search) {
 			input.search.productId = shapeIntoMongoObjectId(input.search.productId);
 		}
@@ -56,7 +53,6 @@ export class ReviewResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Reviews)
 	public async getAllReviewsByAdmin(@Args('input') input: AllReviewsInquiry): Promise<Reviews> {
-		console.log('Query: getAllReviewsByAdmin');
 		if (input.search?.productId) input.search.productId = shapeIntoMongoObjectId(input.search.productId);
 		return await this.reviewService.getAllReviewsByAdmin(input);
 	}
@@ -65,7 +61,6 @@ export class ReviewResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Review)
 	public async updateReviewByAdmin(@Args('input') input: ReviewUpdateByAdmin): Promise<Review> {
-		console.log('Mutation: updateReviewByAdmin');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.reviewService.updateReviewByAdmin(input);
 	}
@@ -74,7 +69,6 @@ export class ReviewResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Review)
 	public async removeReviewByAdmin(@Args('reviewId') input: string): Promise<Review> {
-		console.log('Mutation: removeReviewByAdmin');
 		const reviewId = shapeIntoMongoObjectId(input);
 		return await this.reviewService.removeReviewByAdmin(reviewId);
 	}

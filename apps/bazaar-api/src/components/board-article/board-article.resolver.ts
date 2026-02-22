@@ -23,7 +23,6 @@ export class BoardArticleResolver {
 		@Args('input') input: ArticleInput,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Article> {
-		console.log('Mutation: createBoardArticle');
 		return await this.boardArticleService.createBoardArticle(memberId, input);
 	}
 
@@ -43,7 +42,6 @@ export class BoardArticleResolver {
 		@Args('input') input: ArticleUpdate,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Article> {
-		console.log('Mutation: updateBoardArticle');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.boardArticleService.updateBoardArticle(memberId, input);
 	}
@@ -63,7 +61,6 @@ export class BoardArticleResolver {
 		@Args('articleId') input: string,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Article> {
-		console.log('Mutation: likeTargetBoardArticle');
 		const likeRefId = shapeIntoMongoObjectId(input);
 		return await this.boardArticleService.likeTargetBoardArticle(memberId, likeRefId);
 	}
@@ -74,7 +71,6 @@ export class BoardArticleResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Articles)
 	public async getAllBoardArticlesByAdmin(@Args('input') input: AllArticlesInquiry): Promise<Articles> {
-		console.log('Query: getAllBoardArticlesByAdmin');
 		return await this.boardArticleService.getAllBoardArticlesByAdmin(input);
 	}
 
@@ -82,7 +78,6 @@ export class BoardArticleResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Article)
 	public async updateBoardArticleByAdmin(@Args('input') input: ArticleUpdate): Promise<Article> {
-		console.log('Mutation: updateBoardArticleByAdmin');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.boardArticleService.updateBoardArticleByAdmin(input);
 	}
@@ -91,7 +86,6 @@ export class BoardArticleResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Article)
 	public async removeBoardArticleByAdmin(@Args('articleId') input: string): Promise<Article> {
-		console.log('Mutation: removeBoardArticleByAdmin');
 		const articleId = shapeIntoMongoObjectId(input);
 		return await this.boardArticleService.removeBoardArticleByAdmin(articleId);
 	}

@@ -24,7 +24,6 @@ export class CouponResolver {
 		@Args('couponCode') couponCode: string,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Coupon> {
-		console.log('Query: checkCoupon');
 		return await this.couponService.checkCoupon(memberId, couponCode);
 	}
 
@@ -35,7 +34,6 @@ export class CouponResolver {
 		@Args('couponCode') couponCode: string,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Member> {
-		console.log('Mutation: claimCoupon');
 		return await this.couponService.claimCoupon(memberId, couponCode);
 	}
 
@@ -47,7 +45,6 @@ export class CouponResolver {
 		@Args('input') input: BrandCouponInput,
 		@AuthMember('_id') brandId: ObjectId,
 	): Promise<Coupon> {
-		console.log('Mutation: createBrandCoupon');
 		return await this.couponService.createBrandCoupon(brandId, input);
 	}
 
@@ -57,7 +54,6 @@ export class CouponResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Coupon)
 	public async createCouponByAdmin(@Args('input') input: CouponInput): Promise<Coupon> {
-		console.log('Mutation: createCouponByAdmin');
 		return await this.couponService.createCouponByAdmin(input);
 	}
 
@@ -65,7 +61,6 @@ export class CouponResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Coupon)
 	public async updateCouponByAdmin(@Args('input') input: CouponUpdate): Promise<Coupon> {
-		console.log('Mutation: updateCouponByAdmin');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.couponService.updateCouponByAdmin(input);
 	}
@@ -74,7 +69,6 @@ export class CouponResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Coupons)
 	public async getAllCouponsByAdmin(@Args('input') input: CouponsInquiry): Promise<Coupons> {
-		console.log('Query: getAllCouponsByAdmin');
 		return await this.couponService.getAllCouponsByAdmin(input);
 	}
 
@@ -82,7 +76,6 @@ export class CouponResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Coupon)
 	public async removeCouponByAdmin(@Args('couponId') couponId: string): Promise<Coupon> {
-		console.log('Mutation: removeCouponByAdmin');
 		const id = shapeIntoMongoObjectId(couponId);
 		return await this.couponService.removeCouponByAdmin(id);
 	}

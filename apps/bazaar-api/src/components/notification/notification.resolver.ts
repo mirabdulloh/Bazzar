@@ -24,7 +24,6 @@ export class NotificationResolver {
 		@Args('input') input: NotificationsInquiry,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Notifications> {
-		console.log('Query: getMyNotifications');
 		return await this.notificationService.getMyNotifications(memberId, input);
 	}
 
@@ -34,7 +33,6 @@ export class NotificationResolver {
 		@Args('input') input: NotificationUpdate,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Notification> {
-		console.log('Mutation: markNotificationAsRead');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.notificationService.markNotificationAsRead(memberId, input);
 	}
@@ -42,7 +40,6 @@ export class NotificationResolver {
 	@UseGuards(AuthGuard)
 	@Mutation(() => Boolean)
 	public async markAllNotificationsAsRead(@AuthMember('_id') memberId: ObjectId): Promise<boolean> {
-		console.log('Mutation: markAllNotificationsAsRead');
 		return await this.notificationService.markAllNotificationsAsRead(memberId);
 	}
 
@@ -52,7 +49,6 @@ export class NotificationResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Notifications)
 	public async getAllNotificationsByAdmin(@Args('input') input: NotificationsInquiry): Promise<Notifications> {
-		console.log('Query: getAllNotificationsByAdmin');
 		return await this.notificationService.getAllNotificationsByAdmin(input);
 	}
 
@@ -60,7 +56,6 @@ export class NotificationResolver {
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => Notification)
 	public async removeNotificationByAdmin(@Args('notificationId') input: string): Promise<Notification> {
-		console.log('Mutation: removeNotificationByAdmin');
 		const notificationId = shapeIntoMongoObjectId(input);
 		return await this.notificationService.removeNotificationByAdmin(notificationId);
 	}

@@ -7,7 +7,6 @@ import { OrderService } from './order.service';
 import { OrderResolver } from './order.resolver';
 import { AuthModule } from '../auth/auth.module';
 import { MemberModule } from '../member/member.module';
-import { ProductsModule } from '../products/products.module';
 import { CouponModule } from '../coupon/coupon.module';
 import { NotificationModule } from '../notification/notification.module';
 import { MailModule } from '../mail/mail.module';
@@ -21,7 +20,6 @@ import { MailModule } from '../mail/mail.module';
 		]),
 		AuthModule,
 		MemberModule,
-		ProductsModule,
 		CouponModule,
 		NotificationModule,
 		MailModule,
