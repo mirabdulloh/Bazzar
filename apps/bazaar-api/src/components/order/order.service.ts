@@ -118,6 +118,19 @@ export class OrderService {
 				modifier: Math.floor(orderTotalPrice * 0.01), // 1% points reward
 			});
 
+			// 7. Notify member — order confirmation
+			this.notificationService
+				.createNotification({
+					authorId: memberId,
+					receiverId: memberId,
+					notificationType: NotificationType.ORDER,
+					notificationGroup: NotificationGroup.ORDER,
+					targetId: createdOrder._id as unknown as ObjectId,
+					notificationTitle: 'Order Confirmed',
+					notificationContent: `Your order of $${orderFinalPrice.toFixed(2)} has been placed successfully`,
+				})
+				.catch((err) => console.log('Notification error (order confirm):', err.message));
+
 			return createdOrder;
 		} catch (err) {
 			console.log('Error on createOrder Service', err.message);
@@ -279,6 +292,27 @@ export class OrderService {
 					modifier: item.itemQuantity,
 				});
 			}
+		}
+
+		// Notify member when order status meaningfully changes
+		const statusMessages: Partial<Record<OrderStatus, string>> = {
+			[OrderStatus.SHIPPED]: 'Your order is on its way!',
+			[OrderStatus.DELIVERED]: 'Your order has been delivered',
+			[OrderStatus.CANCELLED]: 'Your order has been cancelled',
+		};
+		const content = input.orderStatus ? statusMessages[input.orderStatus] : undefined;
+		if (content) {
+			this.notificationService
+				.createNotification({
+					authorId: result.memberId as unknown as ObjectId,
+					receiverId: result.memberId as unknown as ObjectId,
+					notificationType: NotificationType.ORDER,
+					notificationGroup: NotificationGroup.ORDER,
+					targetId: result._id as unknown as ObjectId,
+					notificationTitle: 'Order Update',
+					notificationContent: content,
+				})
+				.catch((err) => console.log('Notification error (order update):', err.message));
 		}
 
 		return result;
