@@ -52,11 +52,6 @@ export class OrderService {
 		for (const item of items) {
 			const product = productMap.get(item.productId.toString());
 			if (!product) throw new BadRequestException(`Product ${item.productId} not found or not active`);
-			if (product.productStockQuantity < item.itemQuantity) {
-				throw new BadRequestException(
-					`Insufficient stock for ${product.productTitle}. Available: ${product.productStockQuantity}`,
-				);
-			}
 
 			const productId = shapeIntoMongoObjectId(item.productId);
 			const priceAtPurchase = product.productDiscountPrice > 0 ? product.productDiscountPrice : product.productPrice;
@@ -105,15 +100,28 @@ export class OrderService {
 			}));
 			await this.orderItemModel.insertMany(orderItems);
 
-			// 4. Decrement product stock (single bulkWrite)
-			await this.productModel.bulkWrite(
-				orderItemsData.map((itemData) => ({
-					updateOne: {
-						filter: { _id: itemData.productId },
-						update: { $inc: { productStockQuantity: -itemData.itemQuantity } },
-					},
-				})),
-			);
+			// 4. Decrement product stock (atomic per-item — race-condition safe)
+			const decremented: { productId: ObjectId; qty: number }[] = [];
+			for (const itemData of orderItemsData) {
+				const updated = await this.productModel
+					.findOneAndUpdate(
+						{ _id: itemData.productId, productStockQuantity: { $gte: itemData.itemQuantity } },
+						{ $inc: { productStockQuantity: -itemData.itemQuantity } },
+					)
+					.exec();
+				if (!updated) {
+					// Rollback already-decremented items
+					if (decremented.length) {
+						await this.productModel.bulkWrite(
+							decremented.map((d) => ({
+								updateOne: { filter: { _id: d.productId }, update: { $inc: { productStockQuantity: d.qty } } },
+							})),
+						);
+					}
+					throw new BadRequestException(`Insufficient stock for product ${itemData.productId}`);
+				}
+				decremented.push({ productId: itemData.productId, qty: itemData.itemQuantity });
+			}
 
 			// 5. Mark coupon as used if one was applied
 			if (validatedCoupon) {
