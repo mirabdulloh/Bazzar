@@ -49,22 +49,41 @@ export class ReviewService {
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 
-		// Recalculate product rating — atomic aggregation pipeline update
-		await this.productModel
-			.findByIdAndUpdate(input.productId, [
-				{
-					$set: {
-						productRatingCount: { $add: ['$productRatingCount', 1] },
-						productRatingAverage: {
-							$divide: [
-								{ $add: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, input.reviewRating] },
-								{ $add: ['$productRatingCount', 1] },
-							],
+		// Recalculate product rating + get brand memberId for notification
+		const product = await this.productModel
+			.findByIdAndUpdate(
+				input.productId,
+				[
+					{
+						$set: {
+							productRatingCount: { $add: ['$productRatingCount', 1] },
+							productRatingAverage: {
+								$divide: [
+									{ $add: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, input.reviewRating] },
+									{ $add: ['$productRatingCount', 1] },
+								],
+							},
 						},
 					},
-				},
-			])
+				],
+				{ new: false }, // returns original doc — we only need memberId
+			)
 			.exec();
+
+		// Notify brand that a new review was posted on their product
+		if (product) {
+			this.notificationService
+				.createNotification({
+					authorId: memberId,
+					receiverId: product.memberId as unknown as ObjectId,
+					notificationType: NotificationType.REVIEW,
+					notificationGroup: NotificationGroup.REVIEW,
+					targetId: input.productId,
+					notificationTitle: 'New Product Review',
+					notificationContent: `A new ${input.reviewRating}-star review was posted on your product`,
+				})
+				.catch((err) => console.log('Notification error (review):', err.message));
+		}
 
 		if (!result) throw new InternalServerErrorException(Message.CREATE_FAILED);
 		return result;

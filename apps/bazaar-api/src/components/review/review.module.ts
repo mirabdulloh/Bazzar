@@ -7,6 +7,7 @@ import ProductSchema from '../../schemas/Product.model';
 import OrderSchema from '../../schemas/Order.model';
 import OrderItemSchema from '../../schemas/OrderItems.model';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
 	imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from '../auth/auth.module';
 			{ name: 'OrderItem', schema: OrderItemSchema },
 		]),
 		AuthModule,
+		NotificationModule,
 	],
 	providers: [ReviewResolver, ReviewService],
 })

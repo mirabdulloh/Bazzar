@@ -14,6 +14,8 @@ import { T } from '../../libs/types/common';
 import { MemberService } from '../member/member.service';
 import { ProductsService } from '../products/products.service';
 import { CouponService } from '../coupon/coupon.service';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 
 @Injectable()
 export class OrderService {
@@ -24,6 +26,7 @@ export class OrderService {
 		private readonly memberService: MemberService,
 		private readonly productsService: ProductsService,
 		private readonly couponService: CouponService,
+		private readonly notificationService: NotificationService,
 	) {}
 
 	// ! CREATE ORDER
