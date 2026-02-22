@@ -8,6 +8,7 @@ import CouponSchema from '../../schemas/Coupons.model';
 import { AuthModule } from '../auth/auth.module';
 import { LikeModule } from '../like/like.module';
 import { ViewModule } from '../view/view.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
 	imports: [
@@ -19,6 +20,7 @@ import { ViewModule } from '../view/view.module';
 		AuthModule,
 		LikeModule,
 		ViewModule,
+		MailModule,
 	],
 	providers: [MemberResolver, MemberService],
 	exports: [MemberService],

@@ -30,6 +30,7 @@ import { LikeGroup } from '../../libs/enums/likes.enum';
 import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { ViewService } from '../view/view.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class MemberService {
@@ -40,6 +41,7 @@ export class MemberService {
 		private authService: AuthService,
 		private likeService: LikeService,
 		private viewService: ViewService,
+		private mailService: MailService,
 	) {}
 
 	// ! Sign Up
@@ -74,8 +76,7 @@ export class MemberService {
 					.exec();
 				if (welcomeCoupon) {
 					const limitOk =
-						welcomeCoupon.couponMaxUsage === undefined ||
-						welcomeCoupon.couponUsageCount < welcomeCoupon.couponMaxUsage;
+						welcomeCoupon.couponMaxUsage === undefined || welcomeCoupon.couponUsageCount < welcomeCoupon.couponMaxUsage;
 					if (limitOk) {
 						await this.memberModel.findByIdAndUpdate(result._id, {
 							memberCouponId: welcomeCoupon._id,
@@ -84,6 +85,13 @@ export class MemberService {
 						});
 					}
 				}
+			}
+
+			// Send welcome email for new USER members who provided an email
+			if (result.memberType === MemberType.USER && result.memberEmail) {
+				this.mailService
+					.sendWelcomeEmail(result.memberEmail, result.memberNick)
+					.catch((err) => console.log('Mail error (welcome):', err.message));
 			}
 
 			// Authentication via token

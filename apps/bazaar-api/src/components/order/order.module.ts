@@ -10,6 +10,7 @@ import { MemberModule } from '../member/member.module';
 import { ProductsModule } from '../products/products.module';
 import { CouponModule } from '../coupon/coupon.module';
 import { NotificationModule } from '../notification/notification.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
 	imports: [
@@ -23,6 +24,7 @@ import { NotificationModule } from '../notification/notification.module';
 		ProductsModule,
 		CouponModule,
 		NotificationModule,
+		MailModule,
 	],
 	providers: [OrderService, OrderResolver],
 	exports: [OrderService],
