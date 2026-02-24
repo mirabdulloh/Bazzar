@@ -194,13 +194,13 @@ export class MembersInquiry {
 export class ChangePasswordInput {
 	@IsNotEmpty()
 	@IsString()
-	@Length(8, 20)
+	@Length(7, 20)
 	@Field(() => String)
 	oldPassword: string;
 
 	@IsNotEmpty()
 	@IsString()
-	@Length(8, 20)
+	@Length(7, 20)
 	@Field(() => String)
 	newPassword: string;
 }
