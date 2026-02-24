@@ -95,8 +95,8 @@ export class Member {
 
 	memberPassword?: string;
 
-	@Field(() => CouponStatus)
-	memberCouponStatus: CouponStatus;
+	@Field(() => CouponStatus, { nullable: true })
+	memberCouponStatus?: CouponStatus;
 
 	@Field(() => Date, { nullable: true })
 	memberCouponUsedAt?: Date;
