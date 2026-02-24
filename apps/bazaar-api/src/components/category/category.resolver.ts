@@ -1,8 +1,8 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { CategoryService } from './category.service';
-import { Category } from '../../libs/dto/category/category';
-import { CategoryInput } from '../../libs/dto/category/category.input';
+import { Category, CategoriesData } from '../../libs/dto/category/category';
+import { AllCategoriesInquiry, CategoryInput } from '../../libs/dto/category/category.input';
 import { CategoryUpdate } from '../../libs/dto/category/category.update';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -52,12 +52,12 @@ export class CategoryResolver {
 		return await this.categoryService.deleteCategory(categoryId);
 	}
 
-	// ! Get All Categories By Admin (including inactive)
+	// ! Get All Categories By Admin (paginated + search)
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
-	@Query(() => [Category])
-	public async getAllCategoriesByAdmin(): Promise<Category[]> {
+	@Query(() => CategoriesData)
+	public async getAllCategoriesByAdmin(@Args('input') input: AllCategoriesInquiry): Promise<CategoriesData> {
 		console.log('Query: getAllCategoriesByAdmin');
-		return await this.categoryService.getAllCategoriesByAdmin();
+		return await this.categoryService.getAllCategoriesByAdmin(input);
 	}
 }

@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
-import { Category } from '../../libs/dto/category/category';
-import { CategoryInput } from '../../libs/dto/category/category.input';
+import { Category, CategoriesData } from '../../libs/dto/category/category';
+import { AllCategoriesInquiry, CategoryInput } from '../../libs/dto/category/category.input';
 import { CategoryUpdate } from '../../libs/dto/category/category.update';
-import { Message } from '../../libs/enums/common.enum';
+import { Direction, Message } from '../../libs/enums/common.enum';
+import { T } from '../../libs/types/common';
 import { CategoryStatus } from '../../libs/enums/cattegory.enum';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
@@ -78,8 +79,35 @@ export class CategoryService {
 		return result;
 	}
 
-	// ! GET ALL CATEGORIES BY ADMIN (including inactive)
-	public async getAllCategoriesByAdmin(): Promise<Category[]> {
-		return await this.categoryModel.find().sort({ parentCategoryId: 1, categoryName: 1 }).lean().exec();
+	// ! GET ALL CATEGORIES BY ADMIN (paginated + search filters)
+	public async getAllCategoriesByAdmin(input: AllCategoriesInquiry): Promise<CategoriesData> {
+		const match: T = {};
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
+		if (input.search?.categoryStatus) match.categoryStatus = input.search.categoryStatus;
+		if (input.search?.parentCategoryId) match.parentCategoryId = input.search.parentCategoryId;
+		if (input.search?.text) match.categoryName = { $regex: new RegExp(input.search.text, 'i') };
+
+		const result = await this.categoryModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		return {
+			list: result[0]?.list ?? [],
+			metaData: {
+				total: result[0]?.metaCounter?.[0]?.total ?? 0,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
 	}
 }

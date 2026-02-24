@@ -1,6 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { CategoryStatus } from '../../enums/cattegory.enum';
+import { MetaData } from '../member/member';
 
 @ObjectType()
 export class Category {
@@ -31,4 +32,13 @@ export class Category {
 
 	@Field(() => [Category], { nullable: true })
 	subCategories?: Category[];
+}
+
+@ObjectType()
+export class CategoriesData {
+	@Field(() => [Category])
+	list: Category[];
+
+	@Field(() => MetaData)
+	metaData: MetaData;
 }
