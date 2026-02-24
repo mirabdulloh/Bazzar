@@ -92,8 +92,8 @@ export class MemberService {
 				}
 			}
 
-			// Email verification / welcome email for USER members
-			if (result.memberType === MemberType.USER && result.memberEmail) {
+			// Email verification for USER and BRAND members (ADMIN skips — created by other admins)
+			if ((result.memberType === MemberType.USER || result.memberType === MemberType.BRAND) && result.memberEmail) {
 				const verifyToken = crypto.randomBytes(32).toString('hex');
 				const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 				await this.memberModel.updateOne(
