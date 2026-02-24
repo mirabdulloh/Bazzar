@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MemberResolver } from './member.resolver';
 import { MemberService } from './member.service';
+import { MemberHttpController } from './member-http.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import MemberSchema from '../../schemas/Member.model';
 import BrandSchema from '../../schemas/Brand.model';
@@ -22,6 +23,7 @@ import { MailModule } from '../mail/mail.module';
 		ViewModule,
 		MailModule,
 	],
+	controllers: [MemberHttpController],
 	providers: [MemberResolver, MemberService],
 	exports: [MemberService],
 })

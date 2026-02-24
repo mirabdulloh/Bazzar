@@ -1,4 +1,4 @@
-import depthLimit from 'graphql-depth-limit';
+import * as depthLimit from 'graphql-depth-limit';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';

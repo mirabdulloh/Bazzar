@@ -73,10 +73,7 @@ export class MemberResolver {
 
 	// ! Reset Password
 	@Mutation(() => Boolean)
-	public async resetPassword(
-		@Args('token') token: string,
-		@Args('newPassword') newPassword: string,
-	): Promise<boolean> {
+	public async resetPassword(@Args('token') token: string, @Args('newPassword') newPassword: string): Promise<boolean> {
 		console.log('Mutation: resetPassword');
 		return this.memberService.resetPassword(token, newPassword);
 	}

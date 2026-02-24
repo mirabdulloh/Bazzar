@@ -58,6 +58,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /bazaar-integration-strategy.md
 
+/bazaar-api-requests.md
+/seed.js
+
 # Images Uploads file
 
 uploads
