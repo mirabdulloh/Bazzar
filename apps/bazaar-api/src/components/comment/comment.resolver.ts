@@ -44,7 +44,9 @@ export class CommentResolver {
 		@Args('input') input: CommentsInquiry,
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Comments> {
-		input.search.commentRefId = shapeIntoMongoObjectId(input.search.commentRefId);
+		if (input.search?.commentRefId) {
+			input.search.commentRefId = shapeIntoMongoObjectId(input.search.commentRefId);
+		}
 		return await this.commentService.getComments(memberId, input);
 	}
 

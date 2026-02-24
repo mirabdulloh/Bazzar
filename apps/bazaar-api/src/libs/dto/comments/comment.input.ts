@@ -30,10 +30,11 @@ export class CommentInput {
 }
 
 @InputType()
-class CommentsSearch {
+export class CommentsSearch {
+	@IsOptional()
 	@IsMongoId()
-	@Field(() => String)
-	commentRefId: ObjectId;
+	@Field(() => String, { nullable: true })
+	commentRefId?: ObjectId;
 }
 
 @InputType()
@@ -58,6 +59,7 @@ export class CommentsInquiry {
 	@Field(() => Direction, { nullable: true })
 	direction?: Direction;
 
-	@Field(() => CommentsSearch)
-	search: CommentsSearch;
+	@IsOptional()
+	@Field(() => CommentsSearch, { nullable: true })
+	search?: CommentsSearch;
 }
