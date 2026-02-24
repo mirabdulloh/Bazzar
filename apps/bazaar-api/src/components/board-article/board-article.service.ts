@@ -163,7 +163,7 @@ export class BoardArticleService {
 		const { _id, articleStatus } = input;
 
 		const result = await this.boardArticleModel
-			.findOneAndUpdate({ _id, articleStatus: ArticleStatus.ACTIVE }, input, { new: true })
+			.findOneAndUpdate({ _id }, input, { new: true })
 			.exec();
 		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
