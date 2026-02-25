@@ -35,8 +35,8 @@ export class Address {
 	@Field(() => Boolean)
 	isDefault: boolean;
 
-	@Field(() => AddressStatus)
-	addressStatus: AddressStatus;
+	@Field(() => AddressStatus, { nullable: true })
+	addressStatus?: AddressStatus;
 
 	@Field(() => Date, { nullable: true })
 	deletedAt?: Date;
