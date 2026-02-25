@@ -2,18 +2,25 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Brand, BrandsData } from '../../libs/dto/brand/brand';
+import { Member } from '../../libs/dto/member/member';
 import { BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.input';
 import { BrandUpdate, BrandUpdateByAdmin } from '../../libs/dto/brand/brand.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { BrandStatus } from '../../libs/enums/brand.enum';
 import { lookupBrandMemberData, shapeIntoMongoObjectId } from '../../libs/config';
 import { T } from '../../libs/types/common';
+import { ViewService } from '../view/view.service';
+import { ViewGroup } from '../../libs/enums/view.enum';
 
 @Injectable()
 export class BrandService {
 	private readonly logger = new Logger(BrandService.name);
 
-	constructor(@InjectModel('Brand') private readonly brandModel: Model<Brand>) {}
+	constructor(
+		@InjectModel('Brand') private readonly brandModel: Model<Brand>,
+		@InjectModel('Member') private readonly memberModel: Model<Member>,
+		private readonly viewService: ViewService,
+	) {}
 
 	// ! AUTO-CREATE BRAND ON SIGNUP (called from MemberService when memberType = BRAND)
 	// Brand starts as PENDING — admin must approve before brand can add logo/products
@@ -52,8 +59,8 @@ export class BrandService {
 		return result;
 	}
 
-	// ! GET SINGLE BRAND (public)
-	public async getBrand(brandId: ObjectId): Promise<Brand> {
+	// ! GET SINGLE BRAND (public — increments memberViews when called by logged-in user)
+	public async getBrand(brandId: ObjectId, memberId?: ObjectId): Promise<Brand> {
 		const result = await this.brandModel
 			.aggregate([
 				{ $match: { _id: brandId, brandStatus: { $ne: BrandStatus.SUSPENDED } } },
@@ -63,6 +70,19 @@ export class BrandService {
 			.exec();
 
 		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		// Track view — Brand._id === Member._id by design, so increment memberViews
+		if (memberId) {
+			const newView = await this.viewService.recordView({
+				memberId,
+				viewRefId: brandId,
+				viewGroup: ViewGroup.MEMBER,
+			});
+			if (newView) {
+				await this.memberModel.findByIdAndUpdate(brandId, { $inc: { memberViews: 1 } }).exec();
+			}
+		}
+
 		return result[0];
 	}
 

@@ -39,13 +39,16 @@ export class BrandResolver {
 		return await this.brandService.getMyBrand(memberId);
 	}
 
-	// ! Get Single Brand (public)
+	// ! Get Single Brand (public — views tracked when logged in)
 	@UseGuards(WithoutGuard)
 	@Query(() => Brand)
-	public async getBrand(@Args('brandId') input: string): Promise<Brand> {
+	public async getBrand(
+		@Args('brandId') input: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Brand> {
 		console.log('Query: getBrand');
 		const brandId = shapeIntoMongoObjectId(input);
-		return await this.brandService.getBrand(brandId);
+		return await this.brandService.getBrand(brandId, memberId);
 	}
 
 	// ! Get Brands (public paginated — ACTIVE only)
