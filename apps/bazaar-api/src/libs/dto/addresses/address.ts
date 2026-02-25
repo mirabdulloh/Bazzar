@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
-import { Member } from '../member/member';
+import { Member, MetaData } from '../member/member';
 import { AddressStatus } from '../../enums/address.enum';
 
 @ObjectType()
@@ -50,4 +50,13 @@ export class Address {
 	// ** Relationship Fields **
 	@Field(() => Member, { nullable: true })
 	member?: Member;
+}
+
+@ObjectType()
+export class AddressesData {
+	@Field(() => [Address])
+	list: Address[];
+
+	@Field(() => MetaData)
+	metaData: MetaData;
 }
