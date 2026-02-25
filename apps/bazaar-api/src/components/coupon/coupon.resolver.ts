@@ -8,7 +8,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
 import { Member } from '../../libs/dto/member/member';
 import { BrandCouponInput, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
-import { CouponUpdate } from '../../libs/dto/coupons/coupon.update';
+import { BrandCouponUpdate, CouponUpdate } from '../../libs/dto/coupons/coupon.update';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 import { ObjectId } from 'mongoose';
@@ -46,6 +46,19 @@ export class CouponResolver {
 		@AuthMember('_id') brandId: ObjectId,
 	): Promise<Coupon> {
 		return await this.couponService.createBrandCoupon(brandId, input);
+	}
+
+	/** BRAND — update their own brand coupon (extend dates, usage, discount etc.) */
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Coupon)
+	public async updateBrandCoupon(
+		@Args('input') input: BrandCouponUpdate,
+		@AuthMember('_id') brandId: ObjectId,
+	): Promise<Coupon> {
+		console.log('Mutation: updateBrandCoupon');
+		input._id = shapeIntoMongoObjectId(input._id);
+		return await this.couponService.updateBrandCoupon(brandId, input);
 	}
 
 	/** ADMIN */

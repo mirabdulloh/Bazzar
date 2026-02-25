@@ -5,7 +5,7 @@ import { Direction, Message } from '../../libs/enums/common.enum';
 import { CouponStatus, CouponType, DiscountType } from '../../libs/enums/coupons.enum';
 import { BrandCouponInput, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
-import { CouponUpdate } from '../../libs/dto/coupons/coupon.update';
+import { BrandCouponUpdate, CouponUpdate } from '../../libs/dto/coupons/coupon.update';
 import { Member } from '../../libs/dto/member/member';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
 import { Product } from '../../libs/dto/product/product';
@@ -74,6 +74,16 @@ export class CouponService {
 	}
 
 	/** BRAND */
+
+	public async updateBrandCoupon(brandId: ObjectId, input: BrandCouponUpdate): Promise<Coupon> {
+		const { _id, ...update } = input;
+
+		const result = await this.couponModel
+			.findOneAndUpdate({ _id, brandId, couponType: CouponType.BRAND }, update, { new: true })
+			.exec();
+		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return result;
+	}
 
 	public async createBrandCoupon(brandId: ObjectId, input: BrandCouponInput): Promise<Coupon> {
 		try {

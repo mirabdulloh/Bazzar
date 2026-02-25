@@ -3,6 +3,52 @@ import { IsDate, IsEnum, IsInt, IsMongoId, IsNumber, IsOptional, IsString, Min }
 import { ObjectId } from 'mongoose';
 import { CouponStatus, DiscountType } from '../../enums/coupons.enum';
 
+// Brand — can update their own brand coupon; cannot change couponStatus (admin only)
+@InputType()
+export class BrandCouponUpdate {
+	@IsMongoId()
+	@Field(() => String)
+	_id: ObjectId;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	couponCode?: string;
+
+	@IsOptional()
+	@IsEnum(DiscountType)
+	@Field(() => DiscountType, { nullable: true })
+	discountType?: DiscountType;
+
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	@Field(() => Float, { nullable: true })
+	discountValue?: number;
+
+	@IsOptional()
+	@IsNumber()
+	@Min(1)
+	@Field(() => Int, { nullable: true })
+	couponMaxUsage?: number;
+
+	@IsOptional()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int, { nullable: true })
+	minOrderCount?: number;
+
+	@IsOptional()
+	@IsDate()
+	@Field(() => Date, { nullable: true })
+	couponStartDate?: Date;
+
+	@IsOptional()
+	@IsDate()
+	@Field(() => Date, { nullable: true })
+	couponEndDate?: Date;
+}
+
 @InputType()
 export class CouponUpdate {
 	@IsMongoId()
