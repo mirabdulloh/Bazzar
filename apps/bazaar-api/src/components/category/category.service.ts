@@ -48,8 +48,8 @@ export class CategoryService {
 		const match: T = { categoryStatus: CategoryStatus.ACTIVE };
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
-		if (input.text) match.categoryName = { $regex: new RegExp(input.text, 'i') };
-		if (input.parentCategoryId) match.parentCategoryId = input.parentCategoryId;
+		if (input.search?.text) match.categoryName = { $regex: new RegExp(input.search.text, 'i') };
+		if (input.search?.parentCategoryId) match.parentCategoryId = input.search.parentCategoryId;
 
 		const result = await this.categoryModel
 			.aggregate([

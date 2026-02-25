@@ -49,7 +49,20 @@ export class AllCategoriesInquiry {
 	search?: CategorySearchInput;
 }
 
-// Public paginated query — only text + parentCategoryId (status is always ACTIVE for public)
+// Public search — text + parentCategoryId only (categoryStatus is always ACTIVE for public)
+@InputType()
+export class CategoryPublicSearchInput {
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	parentCategoryId?: ObjectId;
+}
+
 @InputType()
 export class CategoriesInquiry {
 	@IsInt()
@@ -73,14 +86,8 @@ export class CategoriesInquiry {
 	direction?: Direction;
 
 	@IsOptional()
-	@IsString()
-	@Field(() => String, { nullable: true })
-	text?: string;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	parentCategoryId?: ObjectId;
+	@Field(() => CategoryPublicSearchInput, { nullable: true })
+	search?: CategoryPublicSearchInput;
 }
 
 @InputType()
