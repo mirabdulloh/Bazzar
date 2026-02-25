@@ -10,7 +10,7 @@ import { Direction, Message } from '../../libs/enums/common.enum';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 import { CommentInput, CommentsInquiry } from '../../libs/dto/comments/comment.input';
 import { Comment, Comments } from '../../libs/dto/comments/comment';
-import { CommentUpdate } from '../../libs/dto/comments/comment.update';
+import { CommentUpdate, CommentUpdateByAdmin } from '../../libs/dto/comments/comment.update';
 import { T } from '../../libs/types/common';
 import { lookupMember } from '../../libs/config';
 
@@ -93,16 +93,22 @@ export class CommentService {
 	}
 
 	public async updateComment(memberId: ObjectId, input: CommentUpdate): Promise<Comment> {
-		const { _id, commentStatus } = input;
+		const { _id, commentStatus, commentContent } = input;
+
+		// Users may only self-delete (DELETED). ACTIVE and INACTIVE are admin-only.
+		if (commentStatus && commentStatus !== CommentStatus.DELETED) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
+
+		// Build the update explicitly — never spread the full input object
+		const update: T = {};
+		if (commentContent !== undefined) update.commentContent = commentContent;
+		if (commentStatus === CommentStatus.DELETED) update.commentStatus = CommentStatus.DELETED;
 
 		const result = await this.commentModel
 			.findOneAndUpdate(
-				{
-					_id: _id,
-					memberId: memberId,
-					commentStatus: CommentStatus.ACTIVE,
-				},
-				input,
+				{ _id, memberId, commentStatus: CommentStatus.ACTIVE },
+				update,
 				{ new: true },
 			)
 			.exec();
@@ -159,6 +165,14 @@ export class CommentService {
 	}
 
 	/** ADMIN */
+
+	public async updateCommentByAdmin(input: CommentUpdateByAdmin): Promise<Comment> {
+		const result = await this.commentModel
+			.findByIdAndUpdate(input._id, { commentStatus: input.commentStatus }, { new: true })
+			.exec();
+		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return result;
+	}
 
 	public async removeCommentByAdmin(commentId: ObjectId): Promise<Comment> {
 		const target = await this.commentModel.findById(commentId).exec();

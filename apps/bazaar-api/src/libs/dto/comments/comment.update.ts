@@ -19,3 +19,14 @@ export class CommentUpdate {
 	@Field(() => String, { nullable: true })
 	commentContent?: string;
 }
+
+@InputType()
+export class CommentUpdateByAdmin {
+	@IsMongoId()
+	@Field(() => String)
+	_id: ObjectId;
+
+	@IsEnum(CommentStatus)
+	@Field(() => CommentStatus)
+	commentStatus: CommentStatus;
+}

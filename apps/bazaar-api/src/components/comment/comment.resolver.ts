@@ -6,7 +6,7 @@ import { CommentInput, CommentsInquiry } from '../../libs/dto/comments/comment.i
 import { ObjectId } from 'mongoose';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Comment, Comments } from '../../libs/dto/comments/comment';
-import { CommentUpdate } from '../../libs/dto/comments/comment.update';
+import { CommentUpdate, CommentUpdateByAdmin } from '../../libs/dto/comments/comment.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 import { WithoutGuard } from '../auth/guards/without.guard';
 import { MemberType } from '../../libs/enums/member.enum';
@@ -51,6 +51,15 @@ export class CommentResolver {
 	}
 
 	/** ADMIN */
+
+	@Roles(MemberType.ADMIN)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Comment)
+	public async updateCommentByAdmin(@Args('input') input: CommentUpdateByAdmin): Promise<Comment> {
+		console.log('Mutation: updateCommentByAdmin');
+		input._id = shapeIntoMongoObjectId(input._id);
+		return await this.commentService.updateCommentByAdmin(input);
+	}
 
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
