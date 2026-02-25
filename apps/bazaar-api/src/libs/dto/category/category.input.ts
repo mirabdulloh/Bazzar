@@ -1,4 +1,4 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsDate, IsEnum, IsInt, IsMongoId, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { CategoryStatus } from '../../enums/cattegory.enum';
@@ -47,6 +47,40 @@ export class AllCategoriesInquiry {
 	@IsOptional()
 	@Field(() => CategorySearchInput, { nullable: true })
 	search?: CategorySearchInput;
+}
+
+// Public paginated query — only text + parentCategoryId (status is always ACTIVE for public)
+@InputType()
+export class CategoriesInquiry {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	parentCategoryId?: ObjectId;
 }
 
 @InputType()

@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Category, CategoriesData } from '../../libs/dto/category/category';
-import { AllCategoriesInquiry, CategoryInput } from '../../libs/dto/category/category.input';
+import { AllCategoriesInquiry, CategoriesInquiry, CategoryInput } from '../../libs/dto/category/category.input';
 import { CategoryUpdate } from '../../libs/dto/category/category.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { T } from '../../libs/types/common';
@@ -43,17 +43,59 @@ export class CategoryService {
 		}
 	}
 
-	// ! GET CATEGORIES (public — all ACTIVE, flat list; cached for 5 min)
-	public async getCategories(): Promise<Category[]> {
-		if (this.categoryCache && Date.now() < this.cacheExpiry) return this.categoryCache;
-		const data = await this.categoryModel
-			.find({ categoryStatus: CategoryStatus.ACTIVE })
-			.sort({ parentCategoryId: 1, categoryName: 1 })
-			.lean()
+	// ! GET CATEGORIES (public — ACTIVE only, paginated, with products per category)
+	public async getCategories(input: CategoriesInquiry): Promise<CategoriesData> {
+		const match: T = { categoryStatus: CategoryStatus.ACTIVE };
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
+		if (input.text) match.categoryName = { $regex: new RegExp(input.text, 'i') };
+		if (input.parentCategoryId) match.parentCategoryId = input.parentCategoryId;
+
+		const result = await this.categoryModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							{
+								$lookup: {
+									from: 'products',
+									let: { categoryId: '$_id' },
+									pipeline: [
+										{
+											$match: {
+												$expr: {
+													$and: [
+														{ $eq: ['$productCategoryId', '$$categoryId'] },
+														{ $eq: ['$productStatus', 'ACTIVE'] },
+													],
+												},
+											},
+										},
+										{ $sort: { productRank: -1 } },
+										{ $limit: 8 },
+									],
+									as: 'products',
+								},
+							},
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
 			.exec();
-		this.categoryCache = data;
-		this.cacheExpiry = Date.now() + this.CACHE_TTL;
-		return data;
+
+		return {
+			list: result[0]?.list ?? [],
+			metaData: {
+				total: result[0]?.metaCounter?.[0]?.total ?? 0,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
 	}
 
 	// ! UPDATE CATEGORY (Admin only)

@@ -2,7 +2,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { Category, CategoriesData } from '../../libs/dto/category/category';
-import { AllCategoriesInquiry, CategoryInput } from '../../libs/dto/category/category.input';
+import { AllCategoriesInquiry, CategoriesInquiry, CategoryInput } from '../../libs/dto/category/category.input';
 import { CategoryUpdate } from '../../libs/dto/category/category.update';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
