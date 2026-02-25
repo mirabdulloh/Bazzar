@@ -1,6 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { Member } from '../member/member';
+import { AddressStatus } from '../../enums/address.enum';
 
 @ObjectType()
 export class Address {
@@ -33,6 +34,12 @@ export class Address {
 
 	@Field(() => Boolean)
 	isDefault: boolean;
+
+	@Field(() => AddressStatus)
+	addressStatus: AddressStatus;
+
+	@Field(() => Date, { nullable: true })
+	deletedAt?: Date;
 
 	@Field(() => Date)
 	createdAt: Date;

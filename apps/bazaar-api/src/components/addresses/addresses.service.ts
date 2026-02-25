@@ -5,6 +5,7 @@ import { Address } from '../../libs/dto/addresses/address';
 import { AddressInput } from '../../libs/dto/addresses/address.input';
 import { AddressUpdate } from '../../libs/dto/addresses/address.update';
 import { Message } from '../../libs/enums/common.enum';
+import { AddressStatus } from '../../libs/enums/address.enum';
 import { T } from '../../libs/types/common';
 
 @Injectable()
@@ -31,9 +32,9 @@ export class AddressesService {
 		}
 	}
 
-	// ! GET MY ADDRESSES
+	// ! GET MY ADDRESSES (only ACTIVE — excludes soft-deleted)
 	public async getAddresses(memberId: ObjectId): Promise<Address[]> {
-		const match: T = { memberId: memberId };
+		const match: T = { memberId: memberId, addressStatus: AddressStatus.ACTIVE };
 
 		const result = await this.addressModel.find(match).sort({ isDefault: -1, createdAt: -1 }).lean().exec();
 		return result;
@@ -61,9 +62,15 @@ export class AddressesService {
 		return result;
 	}
 
-	// ! DELETE ADDRESS
+	// ! DELETE ADDRESS (soft delete — keeps record for order history lookup)
 	public async deleteAddress(memberId: ObjectId, addressId: ObjectId): Promise<Address> {
-		const result = await this.addressModel.findOneAndDelete({ _id: addressId, memberId: memberId }).exec();
+		const result = await this.addressModel
+			.findOneAndUpdate(
+				{ _id: addressId, memberId: memberId, addressStatus: AddressStatus.ACTIVE },
+				{ addressStatus: AddressStatus.INACTIVE, deletedAt: new Date() },
+				{ new: true },
+			)
+			.exec();
 		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
 
 		return result;

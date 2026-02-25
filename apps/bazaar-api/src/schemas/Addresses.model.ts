@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+import { AddressStatus } from '../libs/enums/address.enum';
 
 const AddressSchema = new Schema(
 	{
@@ -44,6 +45,16 @@ const AddressSchema = new Schema(
 		isDefault: {
 			type: Boolean,
 			default: false,
+		},
+
+		addressStatus: {
+			type: String,
+			enum: AddressStatus,
+			default: AddressStatus.ACTIVE,
+		},
+
+		deletedAt: {
+			type: Date,
 		},
 	},
 	{ timestamps: true, collection: 'addresses' },
