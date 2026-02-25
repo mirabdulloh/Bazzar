@@ -21,6 +21,12 @@ export class Chat {
 	@Field(() => String)
 	chatSubject: string;
 
+	@Field(() => Date, { nullable: true })
+	memberDeletedAt?: Date;
+
+	@Field(() => Date, { nullable: true })
+	brandDeletedAt?: Date;
+
 	@Field(() => Date)
 	createdAt: Date;
 

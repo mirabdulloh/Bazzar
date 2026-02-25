@@ -8,7 +8,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
 import { Chat, Chats } from '../../libs/dto/chat/chat';
-import { OpenChatInput, ChatsInquiry } from '../../libs/dto/chat/chat.input';
+import { OpenChatInput, ChatsInquiry, ChatsInquiryByAdmin } from '../../libs/dto/chat/chat.input';
 import { ChatUpdate } from '../../libs/dto/chat/chat.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
@@ -31,12 +31,18 @@ export class ChatResolver {
 
 	@UseGuards(AuthGuard)
 	@Query(() => Chats)
-	public async getMyChats(
-		@Args('input') input: ChatsInquiry,
-		@AuthMember('_id') memberId: ObjectId,
-	): Promise<Chats> {
+	public async getMyChats(@Args('input') input: ChatsInquiry, @AuthMember('_id') memberId: ObjectId): Promise<Chats> {
 		console.log('Query: getMyChats');
 		return await this.chatService.getMyChats(memberId, input);
+	}
+
+	// ! Any authenticated user (USER or BRAND) can soft-delete their side of the chat
+	@UseGuards(AuthGuard)
+	@Mutation(() => Chat)
+	public async deleteChat(@Args('chatId') chatId: string, @AuthMember('_id') memberId: ObjectId): Promise<Chat> {
+		console.log('Mutation: deleteChat');
+		const id = shapeIntoMongoObjectId(chatId);
+		return await this.chatService.deleteChat(memberId, id);
 	}
 
 	/** BRAND */
@@ -44,10 +50,7 @@ export class ChatResolver {
 	@Roles(MemberType.BRAND)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Chats)
-	public async getBrandChats(
-		@Args('input') input: ChatsInquiry,
-		@AuthMember('_id') brandId: ObjectId,
-	): Promise<Chats> {
+	public async getBrandChats(@Args('input') input: ChatsInquiry, @AuthMember('_id') brandId: ObjectId): Promise<Chats> {
 		console.log('Query: getBrandChats');
 		return await this.chatService.getBrandChats(brandId, input);
 	}
@@ -57,7 +60,7 @@ export class ChatResolver {
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Chats)
-	public async getAllChatsByAdmin(@Args('input') input: ChatsInquiry): Promise<Chats> {
+	public async getAllChatsByAdmin(@Args('input') input: ChatsInquiryByAdmin): Promise<Chats> {
 		console.log('Query: getAllChatsByAdmin');
 		return await this.chatService.getAllChatsByAdmin(input);
 	}

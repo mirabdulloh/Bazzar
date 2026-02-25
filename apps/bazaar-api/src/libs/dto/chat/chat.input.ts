@@ -17,22 +17,13 @@ export class OpenChatInput {
 	chatSubject: string;
 }
 
+// User / Brand — can only filter by chatStatus (identity comes from auth token)
 @InputType()
 class ChatsSearch {
 	@IsOptional()
 	@IsEnum(ChatStatus)
 	@Field(() => ChatStatus, { nullable: true })
 	chatStatus?: ChatStatus;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	brandId?: ObjectId;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	memberId?: ObjectId;
 }
 
 @InputType()
@@ -59,6 +50,7 @@ export class ChatsInquiry {
 	search?: ChatsSearch;
 }
 
+// Admin — can filter by chatStatus, brandId, memberId
 @InputType()
 class ChatsSearchByAdmin {
 	@IsOptional()

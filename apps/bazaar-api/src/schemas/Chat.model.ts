@@ -23,6 +23,16 @@ const ChatSchema = new Schema(
 			type: String,
 			required: true,
 		},
+
+		memberDeletedAt: {
+			type: Date,
+			default: null,
+		},
+
+		brandDeletedAt: {
+			type: Date,
+			default: null,
+		},
 	},
 	{ timestamps: true, collection: 'chats' },
 );
