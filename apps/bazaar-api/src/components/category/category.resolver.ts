@@ -15,11 +15,11 @@ export class CategoryResolver {
 	constructor(private readonly categoryService: CategoryService) {}
 	// * PUBLIC QUERIES *
 
-	// ! Get Categories (public — ACTIVE only, flat list)
-	@Query(() => [Category])
-	public async getCategories(): Promise<Category[]> {
+	// ! Get Categories (public — ACTIVE only, paginated with products)
+	@Query(() => CategoriesData)
+	public async getCategories(@Args('input') input: CategoriesInquiry): Promise<CategoriesData> {
 		console.log('Query: getCategories');
-		return await this.categoryService.getCategories();
+		return await this.categoryService.getCategories(input);
 	}
 
 	// * ADMIN MUTATIONS *
