@@ -69,7 +69,7 @@ export class MessagesChatService {
 
 		const sort: T = { createdAt: input?.direction ?? Direction.ASC };
 
-		const match: T = { conversationId };
+		const match: T = { conversationId, deletedAt: { $exists: false } };
 		if (input.search?.text) {
 			match.message = { $regex: input.search.text, $options: 'i' };
 		}
