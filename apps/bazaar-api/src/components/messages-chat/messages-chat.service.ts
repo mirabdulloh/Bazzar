@@ -63,13 +63,22 @@ export class MessagesChatService {
 		if (!chat) throw new BadRequestException(Message.NO_DATA_FOUND);
 
 		const userIdStr = userId.toString();
-		if (userIdStr !== chat.memberId.toString() && userIdStr !== chat.brandId.toString()) {
+		const isMember = userIdStr === chat.memberId.toString();
+		const isBrand = userIdStr === chat.brandId.toString();
+
+		if (!isMember && !isBrand) {
 			throw new BadRequestException(Message.BAD_REQUEST);
 		}
 
 		const sort: T = { createdAt: input?.direction ?? Direction.ASC };
 
-		const match: T = { conversationId, deletedAt: { $exists: false } };
+		// Hide globally deleted messages AND messages the caller deleted for themselves
+		const sideDeletedField = isMember ? 'memberDeletedAt' : 'brandDeletedAt';
+		const match: T = {
+			conversationId,
+			deletedAt: { $exists: false },
+			[sideDeletedField]: { $exists: false },
+		};
 		if (input.search?.text) {
 			match.message = { $regex: input.search.text, $options: 'i' };
 		}
@@ -120,10 +129,41 @@ export class MessagesChatService {
 		return result;
 	}
 
-	/** USER / BRAND — soft-delete own message */
-	public async removeMessageChat(senderId: ObjectId, messageId: ObjectId): Promise<MessageChat> {
+	/** USER / BRAND — delete own message: for me only OR for everyone */
+	public async removeMessageChat(senderId: ObjectId, messageId: ObjectId, deleteForEveryone: boolean): Promise<MessageChat> {
+		// Load the message to verify participation and ownership
+		const message = await this.messageChatModel
+			.findOne({ _id: messageId, deletedAt: { $exists: false } })
+			.lean()
+			.exec();
+		if (!message) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		const chat = await this.chatService.getChatById(message.conversationId as ObjectId);
+		if (!chat) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+		const memberIdStr = chat.memberId.toString();
+		const brandIdStr = chat.brandId.toString();
+		const senderIdStr = senderId.toString();
+
+		if (senderIdStr !== memberIdStr && senderIdStr !== brandIdStr) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
+
+		let update: T;
+		if (deleteForEveryone) {
+			// Only the original sender can delete for everyone
+			if (message.senderId.toString() !== senderIdStr) {
+				throw new BadRequestException(Message.BAD_REQUEST);
+			}
+			update = { deletedAt: new Date() };
+		} else {
+			// Delete for me only — set the caller's side timestamp
+			const isMember = senderIdStr === memberIdStr;
+			update = { [isMember ? 'memberDeletedAt' : 'brandDeletedAt']: new Date() };
+		}
+
 		const result = await this.messageChatModel
-			.findOneAndUpdate({ _id: messageId, senderId }, { deletedAt: new Date() }, { new: true })
+			.findOneAndUpdate({ _id: messageId }, update, { new: true })
 			.exec();
 		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
 		return result;

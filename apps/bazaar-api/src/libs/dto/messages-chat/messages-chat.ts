@@ -27,6 +27,12 @@ export class MessageChat {
 	readAt?: Date;
 
 	@Field(() => Date, { nullable: true })
+	memberDeletedAt?: Date;
+
+	@Field(() => Date, { nullable: true })
+	brandDeletedAt?: Date;
+
+	@Field(() => Date, { nullable: true })
 	deletedAt?: Date;
 
 	@Field(() => Date)

@@ -31,6 +31,14 @@ const MessageSchema = new Schema(
 			type: Date,
 		},
 
+		memberDeletedAt: {
+			type: Date,
+		},
+
+		brandDeletedAt: {
+			type: Date,
+		},
+
 		deletedAt: {
 			type: Date,
 		},

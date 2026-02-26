@@ -56,11 +56,12 @@ export class MessagesChatResolver {
 	@Mutation(() => MessageChat)
 	public async removeMessageChat(
 		@Args('messageId') messageId: string,
+		@Args('deleteForEveryone', { defaultValue: false }) deleteForEveryone: boolean,
 		@AuthMember('_id') senderId: ObjectId,
 	): Promise<MessageChat> {
 		console.log('Mutation: removeMessageChat');
 		const id = shapeIntoMongoObjectId(messageId);
-		return await this.messagesChatService.removeMessageChat(senderId, id);
+		return await this.messagesChatService.removeMessageChat(senderId, id, deleteForEveryone);
 	}
 
 	/** ADMIN */
