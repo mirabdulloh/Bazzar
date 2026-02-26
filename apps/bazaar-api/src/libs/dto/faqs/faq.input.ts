@@ -30,11 +30,6 @@ class FaqSearch {
 	faqCategory?: FaqCategory;
 
 	@IsOptional()
-	@IsEnum(FaqStatus)
-	@Field(() => FaqStatus, { nullable: true })
-	faqStatus?: FaqStatus;
-
-	@IsOptional()
 	@IsString()
 	@Field(() => String, { nullable: true })
 	text?: string;
@@ -65,4 +60,49 @@ export class FaqsInquiry {
 	@IsOptional()
 	@Field(() => FaqSearch, { nullable: true })
 	search?: FaqSearch;
+}
+
+@InputType()
+class FaqSearchByAdmin {
+	@IsOptional()
+	@IsEnum(FaqCategory)
+	@Field(() => FaqCategory, { nullable: true })
+	faqCategory?: FaqCategory;
+
+	@IsOptional()
+	@IsEnum(FaqStatus)
+	@Field(() => FaqStatus, { nullable: true })
+	faqStatus?: FaqStatus;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+@InputType()
+export class FaqsInquiryByAdmin {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableFaqSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => FaqSearchByAdmin, { nullable: true })
+	search?: FaqSearchByAdmin;
 }

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { FaqStatus } from '../../libs/enums/faqs.enum';
-import { FaqInput, FaqsInquiry } from '../../libs/dto/faqs/faq.input';
+import { FaqInput, FaqsInquiry, FaqsInquiryByAdmin } from '../../libs/dto/faqs/faq.input';
 import { Faq, Faqs } from '../../libs/dto/faqs/faq';
 import { FaqUpdate } from '../../libs/dto/faqs/faq.update';
 import { T } from '../../libs/types/common';
@@ -45,7 +45,7 @@ export class FaqService {
 		return result;
 	}
 
-	public async getAllFaqsByAdmin(input: FaqsInquiry): Promise<Faqs> {
+	public async getAllFaqsByAdmin(input: FaqsInquiryByAdmin): Promise<Faqs> {
 		const { faqCategory, faqStatus, text } = input.search ?? {};
 		const match: T = {};
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };

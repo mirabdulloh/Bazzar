@@ -7,7 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
 import { Faq, Faqs } from '../../libs/dto/faqs/faq';
-import { FaqInput, FaqsInquiry } from '../../libs/dto/faqs/faq.input';
+import { FaqInput, FaqsInquiry, FaqsInquiryByAdmin } from '../../libs/dto/faqs/faq.input';
 import { FaqUpdate } from '../../libs/dto/faqs/faq.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
@@ -46,7 +46,7 @@ export class FaqResolver {
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => Faqs)
-	public async getAllFaqsByAdmin(@Args('input') input: FaqsInquiry): Promise<Faqs> {
+	public async getAllFaqsByAdmin(@Args('input') input: FaqsInquiryByAdmin): Promise<Faqs> {
 		console.log('Query: getAllFaqsByAdmin');
 		return await this.faqService.getAllFaqsByAdmin(input);
 	}
