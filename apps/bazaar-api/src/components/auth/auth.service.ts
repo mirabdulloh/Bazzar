@@ -23,6 +23,7 @@ export class AuthService {
 			_id: doc._id,
 			memberType: doc.memberType,
 			memberStatus: doc.memberStatus,
+			memberNick: doc.memberNick,
 		};
 		return await this.jwtService.signAsync(payload);
 	}

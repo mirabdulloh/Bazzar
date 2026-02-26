@@ -45,9 +45,9 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
 				this.membersMap.set(memberId, client);
 				this.socketToMember.set(client, memberId);
-				this.logger.verbose(`Connected: ${member.memberNick} [${memberId}]`);
+				this.logger.verbose(`Connected: ${member.memberNick} [${memberId}] | online: ${this.server.clients.size}`);
 			} else {
-				this.logger.verbose('Connected: Guest (unauthenticated)');
+				this.logger.verbose(`Connected: Guest (unauthenticated) | online: ${this.server.clients.size}`);
 			}
 		} catch (err) {
 			this.logger.error('handleConnection error', err);
@@ -59,7 +59,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 		if (memberId) {
 			this.membersMap.delete(memberId);
 			this.socketToMember.delete(client);
-			this.logger.verbose(`Disconnected: [${memberId}]`);
+			this.logger.verbose(`Disconnected: [${memberId}] | online: ${this.server.clients.size}`);
 		}
 	}
 
