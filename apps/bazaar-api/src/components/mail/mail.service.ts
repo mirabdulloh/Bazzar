@@ -6,6 +6,13 @@ import { OrderStatus } from '../../libs/enums/order.enum';
 export class MailService {
 	private readonly logger = new Logger('MailService');
 
+	/** Batch size and delay between batches for bulk sending */
+	private readonly BATCH_SIZE = 5;
+	private readonly BATCH_DELAY_MS = 1_500;
+
+	/** Retry delays in ms: 10s → 60s → 3min */
+	private readonly RETRY_DELAYS = [10_000, 60_000, 180_000];
+
 	private readonly transporter = nodemailer.createTransport({
 		service: 'gmail',
 		auth: {
@@ -14,18 +21,52 @@ export class MailService {
 		},
 	});
 
+	private sleep(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+
+	/** Send a single email with automatic retry + exponential backoff */
 	private async send(to: string, subject: string, text: string): Promise<void> {
-		try {
-			await this.transporter.sendMail({
-				from: process.env.MAIL_FROM,
-				to,
-				subject,
-				text,
-			});
-			this.logger.verbose(`Email sent to ${to}: "${subject}"`);
-		} catch (err) {
-			this.logger.error(`Failed to send email to ${to}`, err);
+		for (let attempt = 0; attempt <= this.RETRY_DELAYS.length; attempt++) {
+			try {
+				await this.transporter.sendMail({
+					from: process.env.MAIL_FROM,
+					to,
+					subject,
+					text,
+				});
+				this.logger.verbose(`Email sent to ${to}: "${subject}"`);
+				return;
+			} catch (err) {
+				if (attempt < this.RETRY_DELAYS.length) {
+					const delay = this.RETRY_DELAYS[attempt];
+					this.logger.warn(`Email to ${to} failed (attempt ${attempt + 1}), retrying in ${delay / 1000}s…`);
+					await this.sleep(delay);
+				} else {
+					this.logger.error(`Email to ${to} permanently failed after ${attempt + 1} attempts`, err);
+				}
+			}
 		}
+	}
+
+	/**
+	 * Send to many recipients in small batches to avoid SMTP rate limits.
+	 * textFn receives the recipient address so you can personalise the body.
+	 */
+	public async sendBulk(
+		recipients: string[],
+		subject: string,
+		textFn: (to: string) => string,
+	): Promise<void> {
+		for (let i = 0; i < recipients.length; i += this.BATCH_SIZE) {
+			const batch = recipients.slice(i, i + this.BATCH_SIZE);
+			await Promise.all(batch.map((to) => this.send(to, subject, textFn(to))));
+			// Wait between batches (skip delay after the last batch)
+			if (i + this.BATCH_SIZE < recipients.length) {
+				await this.sleep(this.BATCH_DELAY_MS);
+			}
+		}
+		this.logger.log(`Bulk email "${subject}" dispatched to ${recipients.length} recipients`);
 	}
 
 	public async sendWelcomeEmail(to: string, memberNick: string): Promise<void> {
@@ -83,7 +124,15 @@ export class MailService {
 		);
 	}
 
+	/** Single recipient notice */
 	public async sendNoticeEmail(to: string, noticeTitle: string, noticeContent: string): Promise<void> {
 		await this.send(to, `[Bazaar Notice] ${noticeTitle}`, `${noticeContent}\n\nThe Bazaar Team`);
+	}
+
+	/** Bulk notice — sends to all recipients in batches with retry */
+	public async sendBulkNoticeEmail(recipients: string[], noticeTitle: string, noticeContent: string): Promise<void> {
+		const subject = `[Bazaar Notice] ${noticeTitle}`;
+		const body = `${noticeContent}\n\nThe Bazaar Team`;
+		await this.sendBulk(recipients, subject, () => body);
 	}
 }

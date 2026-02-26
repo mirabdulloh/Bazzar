@@ -32,13 +32,12 @@ export class NoticeService {
 					.lean()
 					.exec()
 					.then((members) => {
-						members.forEach((m) => {
-							if (m.memberEmail) {
-								this.mailService
-									.sendNoticeEmail(m.memberEmail, input.noticeTitle, input.noticeContent)
-									.catch((err) => this.logger.error('Mail error (notice broadcast):', err.message));
-							}
-						});
+						const emails = members.map((m) => m.memberEmail).filter(Boolean) as string[];
+						if (emails.length) {
+							this.mailService
+								.sendBulkNoticeEmail(emails, input.noticeTitle, input.noticeContent)
+								.catch((err) => this.logger.error('Mail error (notice broadcast):', err.message));
+						}
 					})
 					.catch(() => {});
 			}
