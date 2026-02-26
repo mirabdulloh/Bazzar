@@ -22,6 +22,11 @@ const MessageSchema = new Schema(
 			default: [],
 		},
 
+		replyToId: {
+			type: Schema.Types.ObjectId,
+			default: null,
+		},
+
 		readAt: {
 			type: Date,
 		},

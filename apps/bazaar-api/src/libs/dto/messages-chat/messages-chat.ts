@@ -20,6 +20,9 @@ export class MessageChat {
 	@Field(() => [String])
 	attachments: string[];
 
+	@Field(() => String, { nullable: true })
+	replyToId?: ObjectId;
+
 	@Field(() => Date, { nullable: true })
 	readAt?: Date;
 
@@ -32,12 +35,15 @@ export class MessageChat {
 	@Field(() => Date)
 	updatedAt: Date;
 
-	// Relationship
+	// Relationships
 	@Field(() => Chat, { nullable: true })
 	conversationData?: Chat;
 
 	@Field(() => Member, { nullable: true })
 	senderData?: Member;
+
+	@Field(() => MessageChat, { nullable: true })
+	parentMessageData?: MessageChat;
 }
 
 @ObjectType()

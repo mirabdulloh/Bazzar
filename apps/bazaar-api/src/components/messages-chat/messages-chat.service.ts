@@ -19,7 +19,7 @@ export class MessagesChatService {
 
 	/** USER / BRAND — send a message in a conversation */
 	public async sendMessage(senderId: ObjectId, input: SendMessageInput): Promise<MessageChat> {
-		const { conversationId, message, attachments } = input;
+		const { conversationId, message, attachments, replyToId } = input;
 
 		// Verify sender is a participant
 		const chat = await this.chatService.getChatById(conversationId);
@@ -33,11 +33,18 @@ export class MessagesChatService {
 			throw new BadRequestException(Message.BAD_REQUEST);
 		}
 
+		// Validate parent message belongs to the same conversation
+		if (replyToId) {
+			const parent = await this.messageChatModel.findOne({ _id: replyToId, conversationId }).lean().exec();
+			if (!parent) throw new BadRequestException(Message.NO_DATA_FOUND);
+		}
+
 		const result = await this.messageChatModel.create({
 			conversationId,
 			senderId,
 			message,
 			attachments: attachments ?? [],
+			...(replyToId && { replyToId }),
 		});
 
 		// Real-time push to the other participant
@@ -80,6 +87,15 @@ export class MessagesChatService {
 								},
 							},
 							{ $unwind: { path: '$senderData', preserveNullAndEmptyArrays: true } },
+							{
+								$lookup: {
+									from: 'messages',
+									localField: 'replyToId',
+									foreignField: '_id',
+									as: 'parentMessageData',
+								},
+							},
+							{ $unwind: { path: '$parentMessageData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],
 					},

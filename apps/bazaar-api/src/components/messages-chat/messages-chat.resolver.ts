@@ -26,6 +26,7 @@ export class MessagesChatResolver {
 	): Promise<MessageChat> {
 		console.log('Mutation: sendMessage');
 		input.conversationId = shapeIntoMongoObjectId(input.conversationId);
+		if (input.replyToId) input.replyToId = shapeIntoMongoObjectId(input.replyToId);
 		return await this.messagesChatService.sendMessage(senderId, input);
 	}
 

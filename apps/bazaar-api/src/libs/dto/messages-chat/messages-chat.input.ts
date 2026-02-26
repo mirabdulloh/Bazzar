@@ -20,6 +20,11 @@ export class SendMessageInput {
 	@IsString({ each: true })
 	@Field(() => [String], { nullable: true })
 	attachments?: string[];
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	replyToId?: ObjectId;
 }
 
 @InputType()
