@@ -9,7 +9,7 @@ import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
 import { MessageChat, MessageChats } from '../../libs/dto/messages-chat/messages-chat';
 import { SendMessageInput, MessagesInquiry } from '../../libs/dto/messages-chat/messages-chat.input';
-import { MessageChatUpdate } from '../../libs/dto/messages-chat/messages-chat.update';
+import { MessageChatUpdate, RemoveMessageInput } from '../../libs/dto/messages-chat/messages-chat.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
 @Resolver()
@@ -55,13 +55,12 @@ export class MessagesChatResolver {
 	@UseGuards(AuthGuard)
 	@Mutation(() => MessageChat)
 	public async removeMessageChat(
-		@Args('messageId') messageId: string,
-		@Args('deleteForEveryone', { defaultValue: false }) deleteForEveryone: boolean,
+		@Args('input') input: RemoveMessageInput,
 		@AuthMember('_id') senderId: ObjectId,
 	): Promise<MessageChat> {
 		console.log('Mutation: removeMessageChat');
-		const id = shapeIntoMongoObjectId(messageId);
-		return await this.messagesChatService.removeMessageChat(senderId, id, deleteForEveryone);
+		const id = shapeIntoMongoObjectId(input.messageId);
+		return await this.messagesChatService.removeMessageChat(senderId, id, input.deleteForEveryone);
 	}
 
 	/** ADMIN */
