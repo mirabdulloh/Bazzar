@@ -25,6 +25,7 @@ export const availableProductSorts = [
 export const availableBoardArticleSorts = ['createdAt', 'updatedAt', 'articleLikes', 'articleViews'];
 export const availableCommentSorts = ['createdAt', 'updatedAt'];
 export const availableNoticeSorts = ['createdAt', 'updatedAt'];
+export const availableFaqSorts = ['createdAt', 'updatedAt'];
 export const availableReviewSorts = ['createdAt', 'updatedAt', 'reviewRating', 'reviewLikes'];
 export const availableCouponSorts = ['createdAt', 'updatedAt', 'couponStartDate', 'couponEndDate'];
 export const availableNotificationSorts = ['createdAt', 'updatedAt'];

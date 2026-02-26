@@ -17,6 +17,7 @@ import { CouponModule } from './coupon/coupon.module';
 import { NotificationModule } from './notification/notification.module';
 import { ChatModule } from './chat/chat.module';
 import { MessagesChatModule } from './messages-chat/messages-chat.module';
+import { FaqModule } from './faq/faq.module';
 
 @Module({
 	imports: [
@@ -38,6 +39,7 @@ import { MessagesChatModule } from './messages-chat/messages-chat.module';
 		NotificationModule,
 		ChatModule,
 		MessagesChatModule,
+		FaqModule,
 	],
 })
 export class ComponentsModule {}
