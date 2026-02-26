@@ -69,9 +69,14 @@ export class MessagesChatService {
 
 		const sort: T = { createdAt: input?.direction ?? Direction.ASC };
 
+		const match: T = { conversationId };
+		if (input.search?.text) {
+			match.message = { $regex: input.search.text, $options: 'i' };
+		}
+
 		const result = await this.messageChatModel
 			.aggregate([
-				{ $match: { conversationId } },
+				{ $match: match },
 				{ $sort: sort },
 				{
 					$facet: {

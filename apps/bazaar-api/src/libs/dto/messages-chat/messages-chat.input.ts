@@ -28,6 +28,14 @@ export class SendMessageInput {
 }
 
 @InputType()
+export class MessagesSearch {
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+@InputType()
 export class MessagesInquiry {
 	@IsNotEmpty()
 	@IsInt()
@@ -49,4 +57,8 @@ export class MessagesInquiry {
 	@IsMongoId()
 	@Field(() => String)
 	conversationId: ObjectId;
+
+	@IsOptional()
+	@Field(() => MessagesSearch, { nullable: true })
+	search?: MessagesSearch;
 }
