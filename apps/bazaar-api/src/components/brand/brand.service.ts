@@ -32,6 +32,9 @@ export class BrandService {
 				brandName: memberNick, // initial name from nick; brand can update later
 				brandLogo: '',
 				brandStatus: BrandStatus.PENDING,
+				brandRating: 0,
+				brandFollowersCount: 0,
+				brandReviewsCount: 0,
 			});
 			return result;
 		} catch (err) {
@@ -56,6 +59,9 @@ export class BrandService {
 	public async getMyBrand(memberId: ObjectId): Promise<Brand> {
 		const result = await this.brandModel.findById(memberId).exec();
 		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
+		if (result.brandRating == null) result.brandRating = 0;
+		if (result.brandFollowersCount == null) result.brandFollowersCount = 0;
+		if (result.brandReviewsCount == null) result.brandReviewsCount = 0;
 		return result;
 	}
 
@@ -64,6 +70,13 @@ export class BrandService {
 		const result = await this.brandModel
 			.aggregate([
 				{ $match: { _id: brandId, brandStatus: { $ne: BrandStatus.SUSPENDED } } },
+				{
+					$addFields: {
+						brandRating: { $ifNull: ['$brandRating', 0] },
+						brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
+						brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
+					},
+				},
 				lookupBrandMemberData,
 				{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 			])
@@ -104,6 +117,13 @@ export class BrandService {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
+							{
+								$addFields: {
+									brandRating: { $ifNull: ['$brandRating', 0] },
+									brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
+									brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
+								},
+							},
 							lookupBrandMemberData,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 						],
@@ -155,6 +175,13 @@ export class BrandService {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
+							{
+								$addFields: {
+									brandRating: { $ifNull: ['$brandRating', 0] },
+									brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
+									brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
+								},
+							},
 							lookupBrandMemberData,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 						],
