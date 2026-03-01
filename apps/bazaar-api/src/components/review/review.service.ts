@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
@@ -10,8 +10,11 @@ import { Product } from '../../libs/dto/product/product';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
-import { T } from '../../libs/types/common';
-import { lookupMember } from '../../libs/config';
+import { StatisticModifier, T } from '../../libs/types/common';
+import { lookupAuthMemberLiked, lookupMember } from '../../libs/config';
+import { LikeService } from '../like/like.service';
+import { LikeInput } from '../../libs/dto/likes/like.input';
+import { LikeGroup } from '../../libs/enums/likes.enum';
 
 @Injectable()
 export class ReviewService {
@@ -23,6 +26,7 @@ export class ReviewService {
 		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,
 		@InjectModel('Order') private readonly orderModel: Model<any>,
 		private readonly notificationService: NotificationService,
+		private readonly likeService: LikeService,
 	) {}
 
 	public async createReview(memberId: ObjectId, input: ReviewInput): Promise<Review> {
@@ -129,9 +133,13 @@ export class ReviewService {
 		return result;
 	}
 
-	public async getReviews(_memberId: ObjectId, input: ReviewsInquiry): Promise<Reviews> {
+	public async getReviews(memberId: ObjectId, input: ReviewsInquiry): Promise<Reviews> {
 		const { productId } = input.search || {};
-		const match: T = { reviewStatus: ReviewStatus.ACTIVE };
+		const match: T = {
+			reviewStatus: ReviewStatus.ACTIVE,
+			// Prevent GraphQL non-null crashes on legacy bad rows where comment is null/missing
+			reviewComment: { $ne: null },
+		};
 		if (productId) match.productId = productId;
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
@@ -144,6 +152,7 @@ export class ReviewService {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
+							lookupAuthMemberLiked(memberId),
 							lookupMember,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 						],
@@ -153,7 +162,12 @@ export class ReviewService {
 			])
 			.exec();
 
-		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+		if (!result.length) {
+			return {
+				list: [],
+				metaCounter: [{ total: 0 }],
+			};
+		}
 		return result[0];
 	}
 
@@ -161,7 +175,10 @@ export class ReviewService {
 
 	public async getAllReviewsByAdmin(input: AllReviewsInquiry): Promise<Reviews> {
 		const { productId, reviewStatus } = input.search ?? {};
-		const match: T = {};
+		const match: T = {
+			// Prevent GraphQL non-null crashes on legacy bad rows where comment is null/missing
+			reviewComment: { $ne: null },
+		};
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
 		if (productId) match.productId = productId;
@@ -185,8 +202,24 @@ export class ReviewService {
 			])
 			.exec();
 
-		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+		if (!result.length) {
+			return {
+				list: [],
+				metaCounter: [{ total: 0 }],
+			};
+		}
 		return result[0];
+	}
+
+	public async likeTargetReview(memberId: ObjectId, reviewId: ObjectId): Promise<Review> {
+		const target = await this.reviewModel.findOne({ _id: reviewId, reviewStatus: ReviewStatus.ACTIVE }).exec();
+		if (!target) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+		const input: LikeInput = { memberId, likeRefId: reviewId, likeGroup: LikeGroup.REVIEW };
+		const modifier: number = await this.likeService.toggleLike(input);
+		const result = await this.reviewStatsEditor({ _id: reviewId, targetKey: 'reviewLikes', modifier });
+		if (!result) throw new InternalServerErrorException(Message.SOMETHING_WENT_WRONG);
+		return result;
 	}
 
 	public async updateReviewByAdmin(input: ReviewUpdateByAdmin): Promise<Review> {
@@ -233,5 +266,10 @@ export class ReviewService {
 			.exec();
 
 		return result;
+	}
+
+	public async reviewStatsEditor(input: StatisticModifier): Promise<Review> {
+		const { _id, targetKey, modifier } = input;
+		return await this.reviewModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
 	}
 }

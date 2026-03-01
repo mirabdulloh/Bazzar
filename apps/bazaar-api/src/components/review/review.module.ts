@@ -8,6 +8,7 @@ import OrderSchema from '../../schemas/Order.model';
 import OrderItemSchema from '../../schemas/OrderItems.model';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationModule } from '../notification/notification.module';
+import { LikeModule } from '../like/like.module';
 
 @Module({
 	imports: [
@@ -19,6 +20,7 @@ import { NotificationModule } from '../notification/notification.module';
 		]),
 		AuthModule,
 		NotificationModule,
+		LikeModule,
 	],
 	providers: [ReviewResolver, ReviewService],
 	exports: [ReviewService],

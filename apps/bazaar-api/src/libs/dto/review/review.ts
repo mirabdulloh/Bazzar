@@ -4,6 +4,7 @@ import { ReviewStatus } from '../../enums/review.enum';
 import { Member, MetaCounter } from '../member/member';
 import { Product } from '../product/product';
 import { OrderItem } from '../order-items/order-item';
+import { MeLiked } from '../likes/like';
 
 @ObjectType()
 export class Review {
@@ -49,6 +50,9 @@ export class Review {
 
 	@Field(() => OrderItem, { nullable: true })
 	orderItemData?: OrderItem;
+
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 }
 
 @ObjectType()

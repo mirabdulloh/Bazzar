@@ -35,6 +35,16 @@ export class ReviewResolver {
 		return await this.reviewService.updateReview(memberId, input);
 	}
 
+	@UseGuards(AuthGuard)
+	@Mutation(() => Review)
+	public async likeTargetReview(
+		@Args('reviewId') input: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Review> {
+		const reviewId = shapeIntoMongoObjectId(input);
+		return await this.reviewService.likeTargetReview(memberId, reviewId);
+	}
+
 	@UseGuards(WithoutGuard)
 	@Query(() => Reviews)
 	public async getReviews(
