@@ -16,7 +16,7 @@ export class LikeService {
 	constructor(@InjectModel('Like') private readonly likeModel: Model<Like>) {}
 
 	public async toggleLike(input: LikeInput): Promise<number> {
-		const search: T = { memberId: input.memberId, likeRefId: input.likeRefId },
+		const search: T = { memberId: input.memberId, likeRefId: input.likeRefId, likeGroup: input.likeGroup },
 			exist = await this.likeModel.findOne(search).exec();
 		let modifier = 1;
 		if (exist) {
@@ -35,8 +35,8 @@ export class LikeService {
 	}
 
 	public async checkLikeExistence(input: LikeInput): Promise<boolean> {
-		const { memberId, likeRefId } = input;
-		const result = await this.likeModel.findOne({ memberId, likeRefId }).exec();
+		const { memberId, likeRefId, likeGroup } = input;
+		const result = await this.likeModel.findOne({ memberId, likeRefId, likeGroup }).exec();
 		return !!result;
 	}
 

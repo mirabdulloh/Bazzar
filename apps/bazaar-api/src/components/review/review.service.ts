@@ -270,6 +270,22 @@ export class ReviewService {
 
 	public async reviewStatsEditor(input: StatisticModifier): Promise<Review> {
 		const { _id, targetKey, modifier } = input;
-		return await this.reviewModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
+		if (modifier >= 0) {
+			return await this.reviewModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
+		}
+
+		return await this.reviewModel
+			.findByIdAndUpdate(
+				_id,
+				[
+					{
+						$set: {
+							[targetKey]: { $max: [0, { $add: [`$${targetKey}`, modifier] }] },
+						},
+					},
+				],
+				{ new: true },
+			)
+			.exec();
 	}
 }
