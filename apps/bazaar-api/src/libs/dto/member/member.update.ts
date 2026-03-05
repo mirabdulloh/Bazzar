@@ -33,7 +33,7 @@ export class MemberUpdateByAdmin {
 
 	@IsOptional()
 	@IsString()
-	@Length(3, 12)
+	@Length(3, 25)
 	@Field(() => String, { nullable: true })
 	memberNick?: string;
 
@@ -184,7 +184,7 @@ export class MemberUpdate {
 
 	@IsOptional()
 	@IsString()
-	@Length(3, 12)
+	@Length(3, 25)
 	@Field(() => String, { nullable: true })
 	memberNick?: string;
 

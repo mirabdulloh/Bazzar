@@ -8,7 +8,7 @@ import { Direction } from '../../enums/common.enum';
 export class MemberInput {
 	@IsNotEmpty()
 	@IsString()
-	@Length(3, 12)
+	@Length(3, 25)
 	@Field(() => String)
 	memberNick: string;
 
@@ -53,7 +53,7 @@ export class MemberInput {
 export class LoginInput {
 	@IsNotEmpty()
 	@IsString()
-	@Length(3, 12)
+	@Length(3, 25)
 	@Field(() => String)
 	memberNick: string;
 
