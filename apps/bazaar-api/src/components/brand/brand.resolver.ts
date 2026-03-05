@@ -54,9 +54,12 @@ export class BrandResolver {
 	// ! Get Brands (public paginated — ACTIVE only)
 	@UseGuards(WithoutGuard)
 	@Query(() => BrandsData)
-	public async getBrands(@Args('input') input: BrandsInquiry): Promise<BrandsData> {
+	public async getBrands(
+		@Args('input') input: BrandsInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<BrandsData> {
 		console.log('Query: getBrands');
-		return await this.brandService.getBrands(input);
+		return await this.brandService.getBrands(input, memberId);
 	}
 
 	// ! Get All Brands By Admin (all statuses including PENDING)

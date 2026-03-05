@@ -1,7 +1,9 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { BrandStatus } from '../../enums/brand.enum';
-import { Member, MetaData } from '../member/member';
+import { MetaData } from '../member/member';
+import { MeLiked } from '../likes/like';
+import { Member } from '../member/member';
 
 @ObjectType()
 export class Brand {
@@ -43,6 +45,9 @@ export class Brand {
 	// Lookup from members using Brand._id === Member._id
 	@Field(() => Member, { nullable: true })
 	memberData?: Member;
+
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 }
 
 @ObjectType()

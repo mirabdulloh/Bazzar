@@ -7,7 +7,7 @@ import { BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.inpu
 import { BrandUpdate, BrandUpdateByAdmin } from '../../libs/dto/brand/brand.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { BrandStatus } from '../../libs/enums/brand.enum';
-import { lookupBrandMemberData, shapeIntoMongoObjectId } from '../../libs/config';
+import { lookupAuthMemberLiked, lookupBrandMemberData, shapeIntoMongoObjectId } from '../../libs/config';
 import { T } from '../../libs/types/common';
 import { ViewService } from '../view/view.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
@@ -100,33 +100,47 @@ export class BrandService {
 	}
 
 	// ! GET BRANDS (public paginated — only ACTIVE brands)
-	public async getBrands(input: BrandsInquiry): Promise<BrandsData> {
+	public async getBrands(input: BrandsInquiry, memberId?: ObjectId): Promise<BrandsData> {
 		const match: T = { brandStatus: BrandStatus.ACTIVE };
-		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+		const sortKey = input?.sort ?? 'createdAt';
+		const sortDir = input?.direction ?? Direction.DESC;
+		const sort: T = { [sortKey]: sortDir };
 
 		if (input.search?.text) {
 			match.brandName = { $regex: new RegExp(input.search.text, 'i') };
 		}
 
+		const listPipeline: T[] = [
+			...(sortKey === 'memberRank' ? [] : [{ $sort: sort }]),
+			...(sortKey === 'memberRank'
+				? []
+				: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
+			{
+				$addFields: {
+					brandRating: { $ifNull: ['$brandRating', 0] },
+					brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
+					brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
+				},
+			},
+			lookupBrandMemberData,
+			{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+			{ $addFields: { memberRank: { $ifNull: ['$memberData.memberRank', 0] } } },
+			...(memberId ? [lookupAuthMemberLiked(memberId)] : []),
+			...(sortKey === 'memberRank'
+				? [
+					{ $sort: { memberRank: sortDir } },
+					{ $skip: (input.page - 1) * input.limit },
+					{ $limit: input.limit },
+				]
+				: []),
+		];
+
 		const result = await this.brandModel
 			.aggregate([
 				{ $match: match },
-				{ $sort: sort },
 				{
 					$facet: {
-						list: [
-							{ $skip: (input.page - 1) * input.limit },
-							{ $limit: input.limit },
-							{
-								$addFields: {
-									brandRating: { $ifNull: ['$brandRating', 0] },
-									brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
-									brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
-								},
-							},
-							lookupBrandMemberData,
-							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
-						],
+						list: listPipeline,
 						metaCounter: [{ $count: 'total' }],
 					},
 				},
@@ -159,32 +173,45 @@ export class BrandService {
 	// ! GET ALL BRANDS BY ADMIN (paginated — all statuses including PENDING)
 	public async getAllBrandsByAdmin(input: AllBrandsInquiry): Promise<BrandsData> {
 		const match: T = {};
-		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+		const sortKey = input?.sort ?? 'createdAt';
+		const sortDir = input?.direction ?? Direction.DESC;
+		const sort: T = { [sortKey]: sortDir };
 
 		if (input.search) {
 			if (input.search.brandStatus) match.brandStatus = input.search.brandStatus;
 			if (input.search.text) match.brandName = { $regex: new RegExp(input.search.text, 'i') };
 		}
 
+		const adminListPipeline: T[] = [
+			...(sortKey === 'memberRank' ? [] : [{ $sort: sort }]),
+			...(sortKey === 'memberRank'
+				? []
+				: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
+			{
+				$addFields: {
+					brandRating: { $ifNull: ['$brandRating', 0] },
+					brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
+					brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
+				},
+			},
+			lookupBrandMemberData,
+			{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+			{ $addFields: { memberRank: { $ifNull: ['$memberData.memberRank', 0] } } },
+			...(sortKey === 'memberRank'
+				? [
+					{ $sort: { memberRank: sortDir } },
+					{ $skip: (input.page - 1) * input.limit },
+					{ $limit: input.limit },
+				]
+				: []),
+		];
+
 		const result = await this.brandModel
 			.aggregate([
 				{ $match: match },
-				{ $sort: sort },
 				{
 					$facet: {
-						list: [
-							{ $skip: (input.page - 1) * input.limit },
-							{ $limit: input.limit },
-							{
-								$addFields: {
-									brandRating: { $ifNull: ['$brandRating', 0] },
-									brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
-									brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
-								},
-							},
-							lookupBrandMemberData,
-							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
-						],
+						list: adminListPipeline,
 						metaCounter: [{ $count: 'total' }],
 					},
 				},

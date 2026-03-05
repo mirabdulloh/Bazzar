@@ -46,7 +46,7 @@ export class BrandsInquiry {
 	limit: number;
 
 	@IsOptional()
-	@IsIn(['createdAt', 'updatedAt', 'brandRating', 'brandFollowersCount'])
+	@IsIn(['createdAt', 'updatedAt', 'brandRating', 'brandFollowersCount', 'memberRank'])
 	@Field(() => String, { nullable: true })
 	sort?: string;
 
@@ -88,7 +88,7 @@ export class AllBrandsInquiry {
 	limit: number;
 
 	@IsOptional()
-	@IsIn(['createdAt', 'updatedAt', 'brandRating', 'brandFollowersCount'])
+	@IsIn(['createdAt', 'updatedAt', 'brandRating', 'brandFollowersCount', 'memberRank'])
 	@Field(() => String, { nullable: true })
 	sort?: string;
 
