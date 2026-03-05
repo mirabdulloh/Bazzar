@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId } from 'mongoose';
+import { Model, ObjectId, PipelineStage } from 'mongoose';
 import { Brand, BrandsData } from '../../libs/dto/brand/brand';
 import { Member } from '../../libs/dto/member/member';
 import { BrandsInquiry, AllBrandsInquiry } from '../../libs/dto/brand/brand.input';
@@ -49,6 +49,7 @@ export class BrandService {
 		const existing = await this.brandModel.findOne({ _id: memberId, brandStatus: BrandStatus.ACTIVE }).exec();
 		if (!existing) throw new BadRequestException('Brand is not active yet. Please wait for admin approval.');
 
+		delete input._id;
 		const result = await this.brandModel.findByIdAndUpdate(memberId, input, { new: true }).exec();
 		if (!result) throw new NotFoundException(Message.UPDATE_FAILED);
 
@@ -110,11 +111,9 @@ export class BrandService {
 			match.brandName = { $regex: new RegExp(input.search.text, 'i') };
 		}
 
-		const listPipeline: T[] = [
+		const listPipeline: PipelineStage[] = [
 			...(sortKey === 'memberRank' ? [] : [{ $sort: sort }]),
-			...(sortKey === 'memberRank'
-				? []
-				: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
+			...(sortKey === 'memberRank' ? [] : [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
 			{
 				$addFields: {
 					brandRating: { $ifNull: ['$brandRating', 0] },
@@ -127,11 +126,7 @@ export class BrandService {
 			{ $addFields: { memberRank: { $ifNull: ['$memberData.memberRank', 0] } } },
 			...(memberId ? [lookupAuthMemberLiked(memberId)] : []),
 			...(sortKey === 'memberRank'
-				? [
-					{ $sort: { memberRank: sortDir } },
-					{ $skip: (input.page - 1) * input.limit },
-					{ $limit: input.limit },
-				]
+				? [{ $sort: { memberRank: sortDir } }, { $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]
 				: []),
 		];
 
@@ -140,11 +135,11 @@ export class BrandService {
 				{ $match: match },
 				{
 					$facet: {
-						list: listPipeline,
+						list: listPipeline as any,
 						metaCounter: [{ $count: 'total' }],
 					},
 				},
-			])
+			] as PipelineStage[])
 			.exec();
 
 		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
@@ -182,11 +177,9 @@ export class BrandService {
 			if (input.search.text) match.brandName = { $regex: new RegExp(input.search.text, 'i') };
 		}
 
-		const adminListPipeline: T[] = [
+		const adminListPipeline: PipelineStage[] = [
 			...(sortKey === 'memberRank' ? [] : [{ $sort: sort }]),
-			...(sortKey === 'memberRank'
-				? []
-				: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
+			...(sortKey === 'memberRank' ? [] : [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
 			{
 				$addFields: {
 					brandRating: { $ifNull: ['$brandRating', 0] },
@@ -198,11 +191,7 @@ export class BrandService {
 			{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 			{ $addFields: { memberRank: { $ifNull: ['$memberData.memberRank', 0] } } },
 			...(sortKey === 'memberRank'
-				? [
-					{ $sort: { memberRank: sortDir } },
-					{ $skip: (input.page - 1) * input.limit },
-					{ $limit: input.limit },
-				]
+				? [{ $sort: { memberRank: sortDir } }, { $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]
 				: []),
 		];
 
@@ -211,11 +200,11 @@ export class BrandService {
 				{ $match: match },
 				{
 					$facet: {
-						list: adminListPipeline,
+						list: adminListPipeline as any,
 						metaCounter: [{ $count: 'total' }],
 					},
 				},
-			])
+			] as PipelineStage[])
 			.exec();
 
 		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
