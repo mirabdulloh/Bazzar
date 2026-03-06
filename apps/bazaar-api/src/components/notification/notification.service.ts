@@ -48,6 +48,11 @@ export class NotificationService {
 				{ $match: match },
 				{ $sort: sort },
 				{
+					$addFields: {
+						memberId: { $ifNull: ['$memberId', '$receiverId'] },
+					},
+				},
+				{
 					$facet: {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
@@ -112,6 +117,11 @@ export class NotificationService {
 			.aggregate([
 				{ $match: match },
 				{ $sort: sort },
+				{
+					$addFields: {
+						memberId: { $ifNull: ['$memberId', '$receiverId'] },
+					},
+				},
 				{
 					$facet: {
 						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
