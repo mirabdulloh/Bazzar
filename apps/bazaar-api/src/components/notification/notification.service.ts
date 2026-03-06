@@ -50,6 +50,7 @@ export class NotificationService {
 				{
 					$addFields: {
 						memberId: { $ifNull: ['$memberId', '$receiverId'] },
+						notificationContent: { $ifNull: ['$notificationContent', ''] },
 					},
 				},
 				{
@@ -120,6 +121,7 @@ export class NotificationService {
 				{
 					$addFields: {
 						memberId: { $ifNull: ['$memberId', '$receiverId'] },
+						notificationContent: { $ifNull: ['$notificationContent', ''] },
 					},
 				},
 				{

@@ -32,8 +32,8 @@ export class Notification {
 	@Field(() => String)
 	notificationTitle: string;
 
-	@Field(() => String)
-	notificationContent: string;
+	@Field(() => String, { nullable: true })
+	notificationContent?: string;
 
 	@Field(() => Date, { nullable: true })
 	deletedAt?: Date;
