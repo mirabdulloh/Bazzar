@@ -274,6 +274,15 @@ export class OrderService {
 									as: 'orderItems',
 								},
 							},
+							// Lookup product data for each order item
+							{
+								$lookup: {
+									from: 'products',
+									localField: 'orderItems.productId',
+									foreignField: '_id',
+									as: 'productDetails',
+								},
+							},
 							// Lookup delivery address
 							{
 								$lookup: {
@@ -284,6 +293,37 @@ export class OrderService {
 								},
 							},
 							{ $unwind: { path: '$deliveryAddress', preserveNullAndEmptyArrays: true } },
+							// Merge product data into order items
+							{
+								$addFields: {
+									orderItems: {
+										$map: {
+											input: '$orderItems',
+											as: 'item',
+											in: {
+												$mergeObjects: [
+													'$$item',
+													{
+														product: {
+															$arrayElemAt: [
+																{
+																	$filter: {
+																		input: '$productDetails',
+																		as: 'prod',
+																		cond: { $eq: ['$$prod._id', '$$item.productId'] },
+																	},
+																},
+																0,
+															],
+														},
+													},
+												],
+											},
+										},
+									},
+								},
+							},
+							{ $project: { productDetails: 0 } },
 						],
 						metaCounter: [{ $count: 'total' }],
 					},
