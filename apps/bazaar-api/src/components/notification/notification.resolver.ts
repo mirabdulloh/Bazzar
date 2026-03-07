@@ -43,6 +43,12 @@ export class NotificationResolver {
 		return await this.notificationService.markAllNotificationsAsRead(memberId);
 	}
 
+	@UseGuards(AuthGuard)
+	@Mutation(() => Boolean)
+	public async removeAllMyNotifications(@AuthMember('_id') memberId: ObjectId): Promise<boolean> {
+		return await this.notificationService.removeAllMyNotifications(memberId);
+	}
+
 	/** ADMIN */
 
 	@Roles(MemberType.ADMIN)

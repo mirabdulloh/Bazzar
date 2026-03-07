@@ -137,6 +137,12 @@ export class NotificationService {
 		return result[0];
 	}
 
+	/** USER — delete all own notifications */
+	public async removeAllMyNotifications(memberId: ObjectId): Promise<boolean> {
+		await this.notificationModel.deleteMany({ receiverId: memberId }).exec();
+		return true;
+	}
+
 	/** ADMIN — hard delete a notification */
 	public async removeNotificationByAdmin(notificationId: ObjectId): Promise<Notification> {
 		const result = await this.notificationModel.findByIdAndDelete(notificationId).exec();
