@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	InternalServerErrorException,
+	Logger,
+	NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Product, ProductsData } from '../../libs/dto/product/product';
@@ -205,6 +211,8 @@ export class ProductsService {
 
 		const result = await this.productStatsEdits({ _id: productId, targetKey: 'productLikes', modifier });
 		if (!result) throw new InternalServerErrorException(Message.SOMETHING_WENT_WRONG);
+
+		(result as any).meLiked = modifier > 0 ? [{ memberId, likeRefId: productId, myFavorite: true }] : [];
 
 		return result;
 	}
