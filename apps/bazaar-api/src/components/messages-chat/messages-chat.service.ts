@@ -47,6 +47,9 @@ export class MessagesChatService {
 			...(replyToId && { replyToId }),
 		});
 
+		// Bump the chat's updatedAt so it rises to the top of the sorted conversation list
+		this.chatService.touchChat(conversationId).catch(() => {});
+
 		// Real-time push to the other participant
 		const receiverId = senderIdStr === memberIdStr ? brandIdStr : memberIdStr;
 		this.socketGateway.emitToUser(receiverId, 'newMessage', result);

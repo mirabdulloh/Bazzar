@@ -97,11 +97,16 @@ export class ChatService {
 		return this.chatModel.findById(chatId).lean().exec();
 	}
 
+	/** Bump updatedAt so the conversation rises to the top of sorted lists */
+	public async touchChat(chatId: ObjectId): Promise<void> {
+		await this.chatModel.updateOne({ _id: chatId }, { updatedAt: new Date() }).exec();
+	}
+
 	private async buildChatsAggregate(
 		match: T,
 		input: { page: number; limit: number; direction?: Direction },
 	): Promise<Chats> {
-		const sort: T = { createdAt: input?.direction ?? Direction.DESC };
+		const sort: T = { updatedAt: input?.direction ?? Direction.DESC };
 
 		const result = await this.chatModel
 			.aggregate([
