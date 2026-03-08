@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, InternalServerErrorException, Logger, 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Order, OrdersData } from '../../libs/dto/order/order';
-import { CreateOrderInput, AllOrdersInquiry, MyOrdersInquiry } from '../../libs/dto/order/order.input';
+import { CreateOrderInput, AllOrdersInquiry, MyOrdersInquiry, BrandOrdersInquiry } from '../../libs/dto/order/order.input';
 import { OrderUpdate } from '../../libs/dto/order/order.update';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
 import { Product } from '../../libs/dto/product/product';
@@ -444,6 +444,94 @@ export class OrderService {
 							},
 							{ $unwind: { path: '$member', preserveNullAndEmptyArrays: true } },
 							// Lookup delivery address
+							{
+								$lookup: {
+									from: 'addresses',
+									localField: 'orderDeliveryAddressId',
+									foreignField: '_id',
+									as: 'deliveryAddress',
+								},
+							},
+							{ $unwind: { path: '$deliveryAddress', preserveNullAndEmptyArrays: true } },
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		return {
+			orders: result[0].list,
+			metaData: {
+				total: result[0].metaCounter[0]?.total ?? 0,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
+	}
+
+	// ! GET BRAND ORDERS (orders containing brand's products)
+	public async getBrandOrders(brandId: ObjectId, input: BrandOrdersInquiry): Promise<OrdersData> {
+		// 1. Find all product IDs belonging to this brand
+		const brandProductIds = await this.productModel.find({ memberId: brandId }).distinct('_id').exec();
+
+		if (!brandProductIds.length) {
+			return {
+				orders: [],
+				metaData: { total: 0, page: input.page, limit: input.limit },
+			};
+		}
+
+		// 2. Find unique orderIds from orderItems containing brand's products
+		const orderIds = await this.orderItemModel
+			.find({ productId: { $in: brandProductIds } })
+			.distinct('orderId')
+			.exec();
+
+		if (!orderIds.length) {
+			return {
+				orders: [],
+				metaData: { total: 0, page: input.page, limit: input.limit },
+			};
+		}
+
+		// 3. Build match filter
+		const match: T = { _id: { $in: orderIds } };
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
+		if (input.search) {
+			if (input.search.orderStatus) match.orderStatus = input.search.orderStatus;
+		}
+
+		// 4. Aggregate with pagination
+		const result = await this.orderModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							{
+								$lookup: {
+									from: 'orderItems',
+									localField: '_id',
+									foreignField: 'orderId',
+									as: 'orderItems',
+								},
+							},
+							{
+								$lookup: {
+									from: 'members',
+									localField: 'memberId',
+									foreignField: '_id',
+									as: 'member',
+								},
+							},
+							{ $unwind: { path: '$member', preserveNullAndEmptyArrays: true } },
 							{
 								$lookup: {
 									from: 'addresses',

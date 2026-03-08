@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { CouponStatus, CouponType, DiscountType } from '../../libs/enums/coupons.enum';
-import { BrandCouponInput, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
+import { BrandCouponInput, BrandCouponsInquiry, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
 import { BrandCouponUpdate, CouponUpdate } from '../../libs/dto/coupons/coupon.update';
 import { Member } from '../../libs/dto/member/member';
@@ -97,6 +97,30 @@ export class CouponService {
 			this.logger.error('createCoupon failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
+	}
+
+	public async getBrandCoupons(brandId: ObjectId, input: BrandCouponsInquiry): Promise<Coupons> {
+		const { couponStatus } = input.search ?? {};
+		const match: T = { brandId, couponType: CouponType.BRAND };
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
+		if (couponStatus) match.couponStatus = couponStatus;
+
+		const result = await this.couponModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return result[0];
 	}
 
 	/** USER */

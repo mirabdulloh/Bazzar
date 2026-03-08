@@ -178,3 +178,42 @@ export class AllOrdersInquiry {
 	@Field(() => AllOrdersSearch)
 	search: AllOrdersSearch;
 }
+
+// ! Brand Orders
+
+@InputType()
+class BrandOrdersSearch {
+	@IsOptional()
+	@IsEnum(OrderStatus)
+	@Field(() => OrderStatus, { nullable: true })
+	orderStatus?: OrderStatus;
+}
+
+@InputType()
+export class BrandOrdersInquiry {
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(['createdAt', 'updatedAt', 'orderFinalPrice'])
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => BrandOrdersSearch, { nullable: true })
+	search?: BrandOrdersSearch;
+}

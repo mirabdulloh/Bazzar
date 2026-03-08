@@ -2,7 +2,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { Order, OrdersData } from '../../libs/dto/order/order';
-import { CreateOrderInput, MyOrdersInquiry, AllOrdersInquiry } from '../../libs/dto/order/order.input';
+import { CreateOrderInput, MyOrdersInquiry, AllOrdersInquiry, BrandOrdersInquiry } from '../../libs/dto/order/order.input';
 import { OrderUpdate } from '../../libs/dto/order/order.update';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -74,5 +74,16 @@ export class OrderResolver {
 	@Query(() => OrdersData)
 	public async getAllOrdersByAdmin(@Args('input') input: AllOrdersInquiry): Promise<OrdersData> {
 		return await this.orderService.getAllOrdersByAdmin(input);
+	}
+
+	// ! Get Brand Orders (orders containing brand's products)
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Query(() => OrdersData)
+	public async getBrandOrders(
+		@Args('input') input: BrandOrdersInquiry,
+		@AuthMember('_id') brandId: ObjectId,
+	): Promise<OrdersData> {
+		return await this.orderService.getBrandOrders(brandId, input);
 	}
 }

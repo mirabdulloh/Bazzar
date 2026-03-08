@@ -7,7 +7,7 @@ import { MemberType } from '../../libs/enums/member.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
 import { Member } from '../../libs/dto/member/member';
-import { BrandCouponInput, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
+import { BrandCouponInput, BrandCouponsInquiry, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
 import { BrandCouponUpdate, CouponUpdate } from '../../libs/dto/coupons/coupon.update';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { shapeIntoMongoObjectId } from '../../libs/config';
@@ -59,6 +59,17 @@ export class CouponResolver {
 		console.log('Mutation: updateBrandCoupon');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.couponService.updateBrandCoupon(brandId, input);
+	}
+
+	/** BRAND — list their own coupons */
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Query(() => Coupons)
+	public async getBrandCoupons(
+		@Args('input') input: BrandCouponsInquiry,
+		@AuthMember('_id') brandId: ObjectId,
+	): Promise<Coupons> {
+		return await this.couponService.getBrandCoupons(brandId, input);
 	}
 
 	/** ADMIN */

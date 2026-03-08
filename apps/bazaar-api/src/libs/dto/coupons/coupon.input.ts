@@ -141,3 +141,39 @@ export class CouponsInquiry {
 	@Field(() => CouponSearch, { nullable: true })
 	search?: CouponSearch;
 }
+
+/** Brand — list own coupons with optional status filter */
+@InputType()
+class BrandCouponSearch {
+	@IsOptional()
+	@IsEnum(CouponStatus)
+	@Field(() => CouponStatus, { nullable: true })
+	couponStatus?: CouponStatus;
+}
+
+@InputType()
+export class BrandCouponsInquiry {
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsInt()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableCouponSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@IsEnum(Direction)
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsOptional()
+	@Field(() => BrandCouponSearch, { nullable: true })
+	search?: BrandCouponSearch;
+}
