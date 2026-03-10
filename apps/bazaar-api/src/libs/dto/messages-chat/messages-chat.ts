@@ -17,8 +17,8 @@ export class MessageChat {
 	@Field(() => String)
 	message: string;
 
-	@Field(() => [String])
-	attachments: string[];
+	@Field(() => [String], { nullable: true })
+	attachments?: string[];
 
 	@Field(() => String, { nullable: true })
 	replyToId?: ObjectId;
