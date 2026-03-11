@@ -58,8 +58,8 @@ export class MemberResolver {
 	}
 
 	// ! Verify Email
-	@Mutation(() => Boolean)
-	public async verifyEmail(@Args('token') token: string): Promise<boolean> {
+	@Mutation(() => Member)
+	public async verifyEmail(@Args('token') token: string): Promise<Member> {
 		console.log('Mutation: verifyEmail');
 		return this.memberService.verifyEmail(token);
 	}

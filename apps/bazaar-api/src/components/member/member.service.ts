@@ -145,7 +145,7 @@ export class MemberService {
 	}
 
 	// ! Verify Email
-	public async verifyEmail(token: string): Promise<boolean> {
+	public async verifyEmail(token: string): Promise<Member> {
 		const member = await this.memberModel
 			.findOne({
 				emailVerificationToken: token,
@@ -169,7 +169,11 @@ export class MemberService {
 				.sendWelcomeEmail(member.memberEmail, member.memberNick)
 				.catch((err) => this.logger.error('Mail error (welcome after verify):', err.message));
 		}
-		return true;
+
+		member.memberStatus = MemberStatus.ACTIVE;
+		member.accessToken = await this.authService.createToken(member);
+		member.refreshToken = await this.issueRefreshToken(member._id.toString());
+		return member;
 	}
 
 	// ! Forgot Password
