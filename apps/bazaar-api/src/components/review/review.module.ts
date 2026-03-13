@@ -6,6 +6,7 @@ import ReviewSchema from '../../schemas/Review.model';
 import ProductSchema from '../../schemas/Product.model';
 import OrderSchema from '../../schemas/Order.model';
 import OrderItemSchema from '../../schemas/OrderItems.model';
+import BrandSchema from '../../schemas/Brand.model';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationModule } from '../notification/notification.module';
 import { LikeModule } from '../like/like.module';
@@ -17,6 +18,7 @@ import { LikeModule } from '../like/like.module';
 			{ name: 'Product', schema: ProductSchema },
 			{ name: 'Order', schema: OrderSchema },
 			{ name: 'OrderItem', schema: OrderItemSchema },
+			{ name: 'Brand', schema: BrandSchema },
 		]),
 		AuthModule,
 		NotificationModule,

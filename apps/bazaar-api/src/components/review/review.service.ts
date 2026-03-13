@@ -25,9 +25,24 @@ export class ReviewService {
 		@InjectModel('Product') private readonly productModel: Model<Product>,
 		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,
 		@InjectModel('Order') private readonly orderModel: Model<any>,
+		@InjectModel('Brand') private readonly brandModel: Model<any>,
 		private readonly notificationService: NotificationService,
 		private readonly likeService: LikeService,
 	) {}
+
+	/** Recalculate brandRating as the weighted average of all product ratings under that brand */
+	private async recalculateBrandRating(brandMemberId: any): Promise<void> {
+		try {
+			const result = await this.productModel.aggregate([
+				{ $match: { memberId: brandMemberId, productRatingCount: { $gt: 0 } } },
+				{ $group: { _id: null, avgRating: { $avg: '$productRatingAverage' } } },
+			]);
+			const avgRating = result.length > 0 ? Math.round(result[0].avgRating * 10) / 10 : 0;
+			await this.brandModel.findByIdAndUpdate(brandMemberId, { $set: { brandRating: avgRating } });
+		} catch (err) {
+			this.logger.error('recalculateBrandRating failed:', err.message);
+		}
+	}
 
 	public async createReview(memberId: ObjectId, input: ReviewInput): Promise<Review> {
 		// Validate orderItem exists and productId matches
@@ -76,6 +91,13 @@ export class ReviewService {
 			)
 			.exec();
 
+		// Recalculate brand rating based on all its products' average ratings
+		if (product) {
+			this.recalculateBrandRating(product.memberId).catch((err) =>
+				this.logger.error('Brand rating recalc error (create):', err.message),
+			);
+		}
+
 		// Notify brand that a new review was posted on their product
 		if (product) {
 			this.notificationService
@@ -109,25 +131,35 @@ export class ReviewService {
 
 		// Recalculate product rating if rating changed
 		if (reviewRating && reviewRating !== current.reviewRating) {
-			await this.productModel
-				.findByIdAndUpdate(current.productId, [
-					{
-						$set: {
-							productRatingAverage: {
-								$divide: [
-									{
-										$add: [
-											{ $multiply: ['$productRatingAverage', '$productRatingCount'] },
-											{ $subtract: [reviewRating, current.reviewRating] },
-										],
-									},
-									'$productRatingCount',
-								],
+			const updatedProduct = await this.productModel
+				.findByIdAndUpdate(
+					current.productId,
+					[
+						{
+							$set: {
+								productRatingAverage: {
+									$divide: [
+										{
+											$add: [
+												{ $multiply: ['$productRatingAverage', '$productRatingCount'] },
+												{ $subtract: [reviewRating, current.reviewRating] },
+											],
+										},
+										'$productRatingCount',
+									],
+								},
 							},
 						},
-					},
-				])
+					],
+					{ new: false },
+				)
 				.exec();
+
+			if (updatedProduct) {
+				this.recalculateBrandRating(updatedProduct.memberId).catch((err) =>
+					this.logger.error('Brand rating recalc error (update):', err.message),
+				);
+			}
 		}
 
 		return result;
@@ -241,29 +273,39 @@ export class ReviewService {
 		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
 
 		// Recalculate product rating — remove this review's contribution
-		await this.productModel
-			.findByIdAndUpdate(target.productId, [
-				{
-					$set: {
-						productRatingCount: { $max: [0, { $subtract: ['$productRatingCount', 1] }] },
-						productRatingAverage: {
-							$cond: {
-								if: { $lte: ['$productRatingCount', 1] },
-								then: 0,
-								else: {
-									$divide: [
-										{
-											$subtract: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, target.reviewRating],
-										},
-										{ $subtract: ['$productRatingCount', 1] },
-									],
+		const deletedProduct = await this.productModel
+			.findByIdAndUpdate(
+				target.productId,
+				[
+					{
+						$set: {
+							productRatingCount: { $max: [0, { $subtract: ['$productRatingCount', 1] }] },
+							productRatingAverage: {
+								$cond: {
+									if: { $lte: ['$productRatingCount', 1] },
+									then: 0,
+									else: {
+										$divide: [
+											{
+												$subtract: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, target.reviewRating],
+											},
+											{ $subtract: ['$productRatingCount', 1] },
+										],
+									},
 								},
 							},
 						},
 					},
-				},
-			])
+				],
+				{ new: false },
+			)
 			.exec();
+
+		if (deletedProduct) {
+			this.recalculateBrandRating(deletedProduct.memberId).catch((err) =>
+				this.logger.error('Brand rating recalc error (delete):', err.message),
+			);
+		}
 
 		return result;
 	}
