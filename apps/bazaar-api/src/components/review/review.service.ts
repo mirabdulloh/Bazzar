@@ -39,12 +39,17 @@ export class ReviewService {
 			]);
 			const avgRating = result.length > 0 ? Math.round(result[0].avgRating * 10) / 10 : 0;
 			await this.brandModel.findByIdAndUpdate(brandMemberId, { $set: { brandRating: avgRating } });
-		} catch (err) {
+		} catch (err: any) {
 			this.logger.error('recalculateBrandRating failed:', err.message);
 		}
 	}
 
 	public async createReview(memberId: ObjectId, input: ReviewInput): Promise<Review> {
+		input.reviewImages = (input.reviewImages ?? [])
+			.filter((image): image is string => typeof image === 'string')
+			.map((image) => image.trim())
+			.filter(Boolean);
+
 		// Validate orderItem exists and productId matches
 		const orderItem = await this.orderItemModel.findById(input.orderItemId).exec();
 		if (!orderItem) throw new BadRequestException(Message.NO_DATA_FOUND);
@@ -56,17 +61,20 @@ export class ReviewService {
 		const order = await this.orderModel.findOne({ _id: orderItem.orderId, memberId }).exec();
 		if (!order) throw new BadRequestException(Message.BAD_REQUEST);
 
-		// Prevent duplicate review for the same orderItem
-		const existing = await this.reviewModel.findOne({ orderItemId: input.orderItemId }).exec();
-		if (existing) throw new BadRequestException(Message.CREATE_FAILED);
+		// Prevent duplicate review for the same product by the same member
+		const existing = await this.reviewModel.findOne({ memberId, productId: input.productId }).exec();
+		if (existing) throw new BadRequestException(Message.ALREADY_REVIEWED_PRODUCT);
 
 		input.memberId = memberId;
 
 		let result = null;
 		try {
 			result = await this.reviewModel.create(input);
-		} catch (err) {
+		} catch (err: any) {
 			this.logger.error('createReview failed:', err.message);
+			if (err?.code === 11000) {
+				throw new BadRequestException(Message.ALREADY_REVIEWED_PRODUCT);
+			}
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 
@@ -203,6 +211,45 @@ export class ReviewService {
 		return result[0];
 	}
 
+	public async getMyReviews(memberId: ObjectId, input: AllReviewsInquiry): Promise<Reviews> {
+		const { productId, reviewStatus } = input.search ?? {};
+		const match: T = {
+			memberId,
+			reviewComment: { $ne: null },
+		};
+		if (productId) match.productId = productId;
+		if (reviewStatus) match.reviewStatus = reviewStatus;
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
+		const result = await this.reviewModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							lookupAuthMemberLiked(memberId),
+							lookupMember,
+							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) {
+			return {
+				list: [],
+				metaCounter: [{ total: 0 }],
+			};
+		}
+
+		return result[0];
+	}
+
 	/** ADMIN */
 
 	public async getAllReviewsByAdmin(input: AllReviewsInquiry): Promise<Reviews> {
@@ -287,7 +334,10 @@ export class ReviewService {
 									else: {
 										$divide: [
 											{
-												$subtract: [{ $multiply: ['$productRatingAverage', '$productRatingCount'] }, target.reviewRating],
+												$subtract: [
+													{ $multiply: ['$productRatingAverage', '$productRatingCount'] },
+													target.reviewRating,
+												],
 											},
 											{ $subtract: ['$productRatingCount', 1] },
 										],

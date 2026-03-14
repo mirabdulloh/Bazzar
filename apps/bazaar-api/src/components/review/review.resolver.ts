@@ -57,6 +57,16 @@ export class ReviewResolver {
 		return await this.reviewService.getReviews(memberId, input);
 	}
 
+	@UseGuards(AuthGuard)
+	@Query(() => Reviews)
+	public async getMyReviews(
+		@Args('input') input: AllReviewsInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Reviews> {
+		if (input.search?.productId) input.search.productId = shapeIntoMongoObjectId(input.search.productId);
+		return await this.reviewService.getMyReviews(memberId, input);
+	}
+
 	/** ADMIN */
 
 	@Roles(MemberType.ADMIN)
