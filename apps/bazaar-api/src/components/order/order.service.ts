@@ -254,6 +254,7 @@ export class OrderService {
 
 	// ! GET SINGLE ORDER (with items, member, brand, address lookups)
 	public async getOrder(memberId: ObjectId, orderId: ObjectId): Promise<Order> {
+		await this.backfillLegacyBrandIdForOrder(orderId);
 		const result = await this.orderModel
 			.aggregate([
 				{ $match: { _id: orderId, memberId } },
@@ -270,6 +271,7 @@ export class OrderService {
 		const match: T = { memberId };
 
 		if (input.search?.orderStatus) match.orderStatus = input.search.orderStatus;
+		await this.backfillLegacyBrandIds(match);
 
 		const result = await this.orderModel
 			.aggregate([
@@ -301,6 +303,7 @@ export class OrderService {
 	// ! UPDATE ORDER BY ADMIN
 	public async updateOrderByAdmin(input: OrderUpdate): Promise<Order> {
 		const orderId = shapeIntoMongoObjectId(input._id);
+		await this.backfillLegacyBrandIdForOrder(orderId);
 		const existingOrder = await this.orderModel.findById(orderId).exec();
 		if (!existingOrder) throw new NotFoundException(Message.NO_DATA_FOUND);
 
@@ -318,7 +321,7 @@ export class OrderService {
 			await this.notifyOrderStatusChange(updated, input.orderStatus, 'Order Update');
 		}
 
-		return updated;
+		return await this.getOrderForReturn(orderId);
 	}
 
 	// ! GET ALL ORDERS BY ADMIN (paginated)
@@ -329,6 +332,7 @@ export class OrderService {
 		if (input.search?.orderStatus) match.orderStatus = input.search.orderStatus;
 		if (input.search?.orderPaymentStatus) match.orderPaymentStatus = input.search.orderPaymentStatus;
 		if (input.search?.memberId) match.memberId = shapeIntoMongoObjectId(input.search.memberId);
+		await this.backfillLegacyBrandIds(match);
 
 		const result = await this.orderModel
 			.aggregate([
@@ -359,6 +363,7 @@ export class OrderService {
 
 	// ! GET BRAND ORDERS
 	public async getBrandOrders(brandId: ObjectId, input: BrandOrdersInquiry): Promise<OrdersData> {
+		await this.backfillLegacyBrandIdsForBrand(brandId);
 		const match: T = { brandId };
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
@@ -393,6 +398,7 @@ export class OrderService {
 
 	// ! Cancel Order (user-initiated — PENDING orders only)
 	public async cancelOrder(memberId: ObjectId, orderId: ObjectId): Promise<Order> {
+		await this.backfillLegacyBrandIdForOrder(orderId);
 		const order = await this.orderModel.findOne({ _id: orderId, memberId, orderStatus: OrderStatus.PENDING }).exec();
 		if (!order) throw new BadRequestException('Order not found or cannot be cancelled');
 
@@ -404,12 +410,13 @@ export class OrderService {
 		await this.restoreStockForOrder(orderId);
 		await this.notifyOrderStatusChange(updated, OrderStatus.CANCELLED, 'Order Cancelled');
 
-		return updated;
+		return await this.getOrderForReturn(orderId);
 	}
 
 	// ! UPDATE ORDER BY BRAND
 	public async updateOrderByBrand(brandId: ObjectId, input: BrandOrderUpdate): Promise<Order> {
 		const orderId = shapeIntoMongoObjectId(input._id);
+		await this.backfillLegacyBrandIdForOrder(orderId);
 		const order = await this.orderModel.findOne({ _id: orderId, brandId }).exec();
 		if (!order) throw new NotFoundException(Message.NO_DATA_FOUND);
 
@@ -453,11 +460,12 @@ export class OrderService {
 		}
 
 		await this.notifyOrderStatusChange(updated, input.orderStatus, notificationTitle, brandId);
-		return updated;
+		return await this.getOrderForReturn(orderId);
 	}
 
 	// ! CUSTOMER CONFIRMS DELIVERY
 	public async confirmOrderReceived(memberId: ObjectId, orderId: ObjectId): Promise<Order> {
+		await this.backfillLegacyBrandIdForOrder(orderId);
 		const order = await this.orderModel.findOne({ _id: orderId, memberId, orderStatus: OrderStatus.SHIPPED }).exec();
 		if (!order) throw new BadRequestException('Order not found or cannot be marked as delivered');
 
@@ -474,7 +482,7 @@ export class OrderService {
 		if (!updated) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
 		await this.notifyOrderStatusChange(updated, OrderStatus.DELIVERED, 'Order Delivered', memberId);
-		return updated;
+		return await this.getOrderForReturn(orderId);
 	}
 
 	private buildOrderAggregationStages(options: {
@@ -501,6 +509,9 @@ export class OrderService {
 			},
 			{
 				$addFields: {
+					brandId: {
+						$ifNull: ['$brandId', { $arrayElemAt: ['$productDetails.memberId', 0] }],
+					},
 					orderItems: {
 						$map: {
 							input: '$orderItems',
@@ -653,5 +664,79 @@ export class OrderService {
 
 	private roundCurrency(value: number): number {
 		return Math.round((value + Number.EPSILON) * 100) / 100;
+	}
+
+	private async getOrderForReturn(orderId: ObjectId): Promise<Order> {
+		await this.backfillLegacyBrandIdForOrder(orderId);
+		const result = await this.orderModel
+			.aggregate([
+				{ $match: { _id: orderId } },
+				...this.buildOrderAggregationStages({ includeMember: true, includeBrand: true, includeAddress: true }),
+			])
+			.exec();
+
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return result[0];
+	}
+
+	private async backfillLegacyBrandIds(match: T): Promise<void> {
+		const legacyOrders = await this.orderModel
+			.find({ ...match, $or: [{ brandId: { $exists: false } }, { brandId: null }] })
+			.select('_id')
+			.lean()
+			.exec();
+
+		if (!legacyOrders.length) return;
+		await Promise.allSettled(
+			legacyOrders.map((order) => this.backfillLegacyBrandIdForOrder(order._id as unknown as ObjectId)),
+		);
+	}
+
+	private async backfillLegacyBrandIdsForBrand(brandId: ObjectId): Promise<void> {
+		const legacyOrderItems = await this.orderItemModel
+			.aggregate([
+				{
+					$lookup: {
+						from: 'products',
+						localField: 'productId',
+						foreignField: '_id',
+						as: 'product',
+					},
+				},
+				{ $unwind: '$product' },
+				{ $match: { 'product.memberId': brandId } },
+				{
+					$lookup: {
+						from: 'orders',
+						localField: 'orderId',
+						foreignField: '_id',
+						as: 'order',
+					},
+				},
+				{ $unwind: '$order' },
+				{ $match: { $or: [{ 'order.brandId': { $exists: false } }, { 'order.brandId': null }] } },
+				{ $group: { _id: '$orderId' } },
+			])
+			.exec();
+
+		if (!legacyOrderItems.length) return;
+		await Promise.allSettled(
+			legacyOrderItems.map((entry) => this.backfillLegacyBrandIdForOrder(entry._id as ObjectId)),
+		);
+	}
+
+	private async backfillLegacyBrandIdForOrder(orderId: ObjectId): Promise<ObjectId | null> {
+		const order = await this.orderModel.findById(orderId).select('_id brandId').lean().exec();
+		if (!order) return null;
+		if (order.brandId) return order.brandId as unknown as ObjectId;
+
+		const firstOrderItem = await this.orderItemModel.findOne({ orderId }).select('productId').lean().exec();
+		if (!firstOrderItem?.productId) return null;
+
+		const product = await this.productModel.findById(firstOrderItem.productId).select('memberId').lean().exec();
+		if (!product?.memberId) return null;
+
+		await this.orderModel.updateOne({ _id: orderId }, { $set: { brandId: product.memberId } }).exec();
+		return product.memberId as unknown as ObjectId;
 	}
 }
