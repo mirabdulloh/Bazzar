@@ -1,5 +1,6 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { IsDate, IsEnum, IsInt, IsMongoId, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ObjectId } from 'mongoose';
 import { CouponStatus, DiscountType } from '../../enums/coupons.enum';
 
@@ -34,17 +35,19 @@ export class BrandCouponUpdate {
 
 	@IsOptional()
 	@IsInt()
-	@Min(1)
+	@Min(0)
 	@Field(() => Int, { nullable: true })
 	minOrderCount?: number;
 
 	@IsOptional()
 	@IsDate()
+	@Type(() => Date)
 	@Field(() => Date, { nullable: true })
 	couponStartDate?: Date;
 
 	@IsOptional()
 	@IsDate()
+	@Type(() => Date)
 	@Field(() => Date, { nullable: true })
 	couponEndDate?: Date;
 }
@@ -79,17 +82,19 @@ export class CouponUpdate {
 
 	@IsOptional()
 	@IsInt()
-	@Min(1)
+	@Min(0)
 	@Field(() => Int, { nullable: true })
 	minOrderCount?: number;
 
 	@IsOptional()
 	@IsDate()
+	@Type(() => Date)
 	@Field(() => Date, { nullable: true })
 	couponStartDate?: Date;
 
 	@IsOptional()
 	@IsDate()
+	@Type(() => Date)
 	@Field(() => Date, { nullable: true })
 	couponEndDate?: Date;
 

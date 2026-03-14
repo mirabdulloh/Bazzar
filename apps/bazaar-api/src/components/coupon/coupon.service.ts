@@ -41,7 +41,11 @@ export class CouponService {
 
 	public async createCouponByAdmin(input: CouponInput): Promise<Coupon> {
 		try {
-			const result = await this.couponModel.create(input);
+			const result = await this.couponModel.create({
+				...input,
+				couponType: CouponType.PLATFORM,
+				brandId: undefined,
+			});
 			return result;
 		} catch (err: any) {
 			this.logger.error('createCoupon failed:', err.message);
@@ -222,6 +226,7 @@ export class CouponService {
 		}
 
 		let createdClaim: CouponClaim | null = null;
+		let slotReserved = false;
 		try {
 			createdClaim = await this.couponClaimModel.create({
 				couponId: coupon._id,
@@ -236,6 +241,7 @@ export class CouponService {
 				await this.couponClaimModel.findByIdAndDelete(createdClaim._id).exec();
 				throw new BadRequestException(Message.COUPON_CLAIM_LIMIT_REACHED);
 			}
+			slotReserved = true;
 
 			const result = await this.memberModel
 				.findByIdAndUpdate(
@@ -253,6 +259,12 @@ export class CouponService {
 			if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 			return result;
 		} catch (err: any) {
+			if (createdClaim?._id) {
+				await this.couponClaimModel.findByIdAndDelete(createdClaim._id).exec();
+			}
+			if (slotReserved) {
+				await this.couponModel.findByIdAndUpdate(coupon._id, { $inc: { couponUsageCount: -1 } }).exec();
+			}
 			if (err?.code === 11000) {
 				throw new BadRequestException(Message.COUPON_ALREADY_CLAIMED);
 			}
