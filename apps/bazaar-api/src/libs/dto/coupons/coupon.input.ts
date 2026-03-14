@@ -1,5 +1,5 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
-import { IsDate, IsEnum, IsIn, IsInt, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDate, IsEnum, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CouponStatus, CouponType, DiscountType } from '../../enums/coupons.enum';
 import { Direction } from '../../enums/common.enum';
@@ -14,34 +14,27 @@ export class CouponInput {
 	couponCode: string;
 
 	@IsOptional()
-	@IsEnum(CouponType)
-	@Field(() => CouponType, { nullable: true })
-	couponType?: CouponType;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	brandId?: string;
-
-	@IsOptional()
 	@IsEnum(DiscountType)
 	@Field(() => DiscountType, { nullable: true })
 	discountType?: DiscountType;
 
 	@IsNumber()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Float)
 	discountValue: number;
 
 	@IsOptional()
 	@IsNumber()
 	@Min(1)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	couponMaxUsage?: number;
 
 	@IsOptional()
 	@IsInt()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	minOrderCount?: number;
 
@@ -76,18 +69,21 @@ export class BrandCouponInput {
 
 	@IsNumber()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Float)
 	discountValue: number;
 
 	@IsOptional()
 	@IsNumber()
 	@Min(1)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	couponMaxUsage?: number;
 
 	@IsOptional()
 	@IsInt()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	minOrderCount?: number;
 

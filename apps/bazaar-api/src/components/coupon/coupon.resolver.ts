@@ -53,6 +53,15 @@ export class CouponResolver {
 		return await this.couponService.getMyCouponClaims(memberId, input);
 	}
 
+	@UseGuards(AuthGuard)
+	@Query(() => Coupons)
+	public async getAvailableCouponsForMe(
+		@Args('input') input: CouponsInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Coupons> {
+		return await this.couponService.getAvailableCouponsForMe(memberId, input);
+	}
+
 	/** BRAND — create a brand-scoped coupon */
 	@Roles(MemberType.BRAND)
 	@UseGuards(AuthGuard, RolesGuard)

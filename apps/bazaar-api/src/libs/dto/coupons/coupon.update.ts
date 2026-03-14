@@ -24,18 +24,21 @@ export class BrandCouponUpdate {
 	@IsOptional()
 	@IsNumber()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Float, { nullable: true })
 	discountValue?: number;
 
 	@IsOptional()
 	@IsNumber()
 	@Min(1)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	couponMaxUsage?: number;
 
 	@IsOptional()
 	@IsInt()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	minOrderCount?: number;
 
@@ -50,6 +53,11 @@ export class BrandCouponUpdate {
 	@Type(() => Date)
 	@Field(() => Date, { nullable: true })
 	couponEndDate?: Date;
+
+	@IsOptional()
+	@IsEnum(CouponStatus)
+	@Field(() => CouponStatus, { nullable: true })
+	couponStatus?: CouponStatus;
 }
 
 @InputType()
@@ -71,18 +79,21 @@ export class CouponUpdate {
 	@IsOptional()
 	@IsNumber()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Float, { nullable: true })
 	discountValue?: number;
 
 	@IsOptional()
 	@IsNumber()
 	@Min(1)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	couponMaxUsage?: number;
 
 	@IsOptional()
 	@IsInt()
 	@Min(0)
+	@Type(() => Number)
 	@Field(() => Int, { nullable: true })
 	minOrderCount?: number;
 

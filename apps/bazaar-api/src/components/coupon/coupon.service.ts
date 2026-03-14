@@ -144,6 +144,58 @@ export class CouponService {
 
 	/** USER */
 
+	public async getAvailableCouponsForMe(memberId: ObjectId, input: CouponsInquiry): Promise<Coupons> {
+		const now = new Date();
+		const sortKey = input?.sort ?? 'createdAt';
+		const sortDirection = input?.direction ?? Direction.DESC;
+		const activeCoupons = await this.couponModel
+			.find({
+				couponStatus: CouponStatus.ACTIVE,
+				couponStartDate: { $lte: now },
+				couponEndDate: { $gte: now },
+			})
+			.sort({ [sortKey]: sortDirection })
+			.lean()
+			.exec();
+
+		const existingClaims = await this.couponClaimModel
+			.find({ memberId }, { couponId: 1 })
+			.lean()
+			.exec();
+		const claimedCouponIds = new Set(existingClaims.map((claim) => String(claim.couponId)));
+		const deliveredOrdersTotal = await this.countMemberDeliveredOrders(memberId);
+
+		const eligibleCoupons = (
+			await Promise.all(
+				activeCoupons.map(async (coupon) => {
+					if (claimedCouponIds.has(String(coupon._id))) return null;
+					if (
+						coupon.couponMaxUsage != null &&
+						(coupon.couponUsageCount ?? 0) >= coupon.couponMaxUsage
+					) {
+						return null;
+					}
+
+					if (coupon.couponType === CouponType.BRAND) {
+						const brandId = coupon.brandId as ObjectId | undefined;
+						if (!brandId) return null;
+						const brandDeliveredOrders = await this.countMemberDeliveredOrdersWithBrand(memberId, brandId);
+						if ((coupon.minOrderCount ?? 0) > brandDeliveredOrders) return null;
+					} else if ((coupon.minOrderCount ?? 0) > deliveredOrdersTotal) {
+						return null;
+					}
+
+					return coupon;
+				}),
+			)
+		).filter(Boolean) as Coupon[];
+
+		return {
+			list: eligibleCoupons.slice((input.page - 1) * input.limit, input.page * input.limit),
+			metaCounter: [{ total: eligibleCoupons.length }],
+		};
+	}
+
 	public async getMyCouponClaims(memberId: ObjectId, input: CouponClaimsInquiry): Promise<CouponClaimsData> {
 		const match: T = { memberId };
 		const sort: T = { [input?.sort ?? 'claimedAt']: input?.direction ?? Direction.DESC };
@@ -341,6 +393,32 @@ export class CouponService {
 		const result = await this.orderItemModel
 			.aggregate([
 				{ $match: { productId: { $in: brandProductIds } } },
+				{
+					$lookup: {
+						from: 'orders',
+						localField: 'orderId',
+						foreignField: '_id',
+						as: 'order',
+					},
+				},
+				{ $unwind: '$order' },
+				{
+					$match: {
+						'order.memberId': memberId,
+						'order.orderStatus': OrderStatus.DELIVERED,
+					},
+				},
+				{ $group: { _id: '$orderId' } },
+				{ $count: 'total' },
+			])
+			.exec();
+
+		return result[0]?.total ?? 0;
+	}
+
+	private async countMemberDeliveredOrders(memberId: ObjectId): Promise<number> {
+		const result = await this.orderItemModel
+			.aggregate([
 				{
 					$lookup: {
 						from: 'orders',
