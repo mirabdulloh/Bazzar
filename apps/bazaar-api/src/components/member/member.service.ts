@@ -591,6 +591,15 @@ export class MemberService {
 			.exec();
 
 		if (!member) throw new UnauthorizedException('Refresh token not recognised');
+		if (member.memberStatus === MemberStatus.DELETE) {
+			throw new UnauthorizedException(Message.NO_MEMBER_NICK);
+		}
+		if (member.memberStatus === MemberStatus.BLOCK) {
+			throw new ForbiddenException(Message.BLOCKED_USER);
+		}
+		if (member.memberStatus === MemberStatus.PENDING) {
+			throw new ForbiddenException('Please verify your email before logging in');
+		}
 
 		member.accessToken = await this.authService.createToken(member);
 		member.refreshToken = await this.issueRefreshToken(member._id.toString());
