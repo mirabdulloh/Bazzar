@@ -40,14 +40,16 @@ export class FollowService {
 			this.memberService.memberStatsEdits({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 }),
 		]);
 
-		this.notificationService.createNotification({
-			authorId: followerId,
-			receiverId: followingId,
-			notificationType: NotificationType.FOLLOW,
-			notificationGroup: NotificationGroup.MEMBER,
-			notificationTitle: 'New Follower',
-			notificationContent: 'You have a new follower',
-		}).catch((err) => this.logger.error('Notification error (follow):', err.message));
+		this.notificationService
+			.createNotification({
+				authorId: followerId,
+				receiverId: followingId,
+				notificationType: NotificationType.FOLLOW,
+				notificationGroup: NotificationGroup.MEMBER,
+				notificationTitle: 'New Follower',
+				notificationContent: 'You have a new follower',
+			})
+			.catch((err) => this.logger.error('Notification error (follow):', err.message));
 
 		return result;
 	}
