@@ -15,6 +15,15 @@ export enum CouponStatus {
 
 registerEnumType(CouponStatus, { name: 'CouponStatus' });
 
+export enum CouponClaimStatus {
+	CLAIMED = 'CLAIMED',
+	USED = 'USED',
+	EXPIRED = 'EXPIRED',
+	REVOKED = 'REVOKED',
+}
+
+registerEnumType(CouponClaimStatus, { name: 'CouponClaimStatus' });
+
 export enum CouponType {
 	PLATFORM = 'PLATFORM',
 	BRAND = 'BRAND',

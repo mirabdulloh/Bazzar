@@ -11,9 +11,10 @@ import { Model, ObjectId } from 'mongoose';
 import { Member, MembersData } from '../../libs/dto/member/member';
 import { Brand } from '../../libs/dto/brand/brand';
 import { Coupon } from '../../libs/dto/coupons/coupon';
+import { CouponClaim } from '../../libs/dto/coupons/coupon-claim';
 import { InjectModel } from '@nestjs/mongoose';
 import { BrandStatus } from '../../libs/enums/brand.enum';
-import { CouponStatus, CouponType } from '../../libs/enums/coupons.enum';
+import { CouponClaimStatus, CouponStatus, CouponType } from '../../libs/enums/coupons.enum';
 import {
 	BrandInquiry,
 	ChangePasswordInput,
@@ -43,6 +44,7 @@ export class MemberService {
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		@InjectModel('Brand') private readonly brandModel: Model<Brand>,
 		@InjectModel('Coupon') private readonly couponModel: Model<Coupon>,
+		@InjectModel('CouponClaim') private readonly couponClaimModel: Model<CouponClaim>,
 		private authService: AuthService,
 		private likeService: LikeService,
 		private viewService: ViewService,
@@ -83,11 +85,30 @@ export class MemberService {
 					const limitOk =
 						welcomeCoupon.couponMaxUsage === undefined || welcomeCoupon.couponUsageCount < welcomeCoupon.couponMaxUsage;
 					if (limitOk) {
-						await this.memberModel.findByIdAndUpdate(result._id, {
-							memberCouponId: welcomeCoupon._id,
-							memberCouponStatus: CouponStatus.ACTIVE,
-							memberCouponAssignedAt: now,
-						});
+						try {
+							await this.couponClaimModel.create({
+								couponId: welcomeCoupon._id,
+								memberId: result._id,
+								claimStatus: CouponClaimStatus.CLAIMED,
+								claimedAt: now,
+							});
+
+							await Promise.all([
+								this.couponModel.findByIdAndUpdate(welcomeCoupon._id, { $inc: { couponUsageCount: 1 } }).exec(),
+								this.memberModel
+									.findByIdAndUpdate(result._id, {
+										memberCouponId: welcomeCoupon._id,
+										memberCouponStatus: CouponStatus.ACTIVE,
+										memberCouponAssignedAt: now,
+										memberCouponUsedAt: null,
+									})
+									.exec(),
+							]);
+						} catch (err: any) {
+							if (err?.code !== 11000) {
+								this.logger.error('welcome coupon assignment failed:', err.message);
+							}
+						}
 					}
 				}
 			}

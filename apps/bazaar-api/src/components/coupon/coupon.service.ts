@@ -1,15 +1,29 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	InternalServerErrorException,
+	Logger,
+	NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import { CouponStatus, CouponType, DiscountType } from '../../libs/enums/coupons.enum';
-import { BrandCouponInput, BrandCouponsInquiry, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
+import { CouponClaimStatus, CouponStatus, CouponType, DiscountType } from '../../libs/enums/coupons.enum';
+import {
+	BrandCouponInput,
+	BrandCouponsInquiry,
+	CouponInput,
+	CouponsInquiry,
+} from '../../libs/dto/coupons/coupon.input';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
 import { BrandCouponUpdate, CouponUpdate } from '../../libs/dto/coupons/coupon.update';
+import { CouponClaim, CouponClaimsData } from '../../libs/dto/coupons/coupon-claim';
+import { CouponClaimsInquiry } from '../../libs/dto/coupons/coupon-claim.input';
 import { Member } from '../../libs/dto/member/member';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
 import { Product } from '../../libs/dto/product/product';
 import { T } from '../../libs/types/common';
+import { OrderStatus } from '../../libs/enums/order.enum';
 
 @Injectable()
 export class CouponService {
@@ -17,6 +31,7 @@ export class CouponService {
 
 	constructor(
 		@InjectModel('Coupon') private readonly couponModel: Model<Coupon>,
+		@InjectModel('CouponClaim') private readonly couponClaimModel: Model<CouponClaim>,
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		@InjectModel('OrderItem') private readonly orderItemModel: Model<OrderItem>,
 		@InjectModel('Product') private readonly productModel: Model<Product>,
@@ -28,7 +43,7 @@ export class CouponService {
 		try {
 			const result = await this.couponModel.create(input);
 			return result;
-		} catch (err) {
+		} catch (err: any) {
 			this.logger.error('createCoupon failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
@@ -93,7 +108,7 @@ export class CouponService {
 				brandId,
 			});
 			return result;
-		} catch (err) {
+		} catch (err: any) {
 			this.logger.error('createCoupon failed:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
@@ -125,11 +140,59 @@ export class CouponService {
 
 	/** USER */
 
+	public async getMyCouponClaims(memberId: ObjectId, input: CouponClaimsInquiry): Promise<CouponClaimsData> {
+		const match: T = { memberId };
+		const sort: T = { [input?.sort ?? 'claimedAt']: input?.direction ?? Direction.DESC };
+
+		if (input.search?.claimStatus) match.claimStatus = input.search.claimStatus;
+
+		const result = await this.couponClaimModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							{
+								$lookup: {
+									from: 'coupons',
+									localField: 'couponId',
+									foreignField: '_id',
+									as: 'coupon',
+								},
+							},
+							{
+								$unwind: {
+									path: '$coupon',
+									preserveNullAndEmptyArrays: true,
+								},
+							},
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		return {
+			list: result[0]?.list ?? [],
+			metaData: {
+				total: result[0]?.metaCounter?.[0]?.total ?? 0,
+				page: input.page,
+				limit: input.limit,
+			},
+		};
+	}
+
 	/**
-	 * claimCoupon — user calls this to earn a coupon.
-	 * - For brand coupons with minOrderCount: validates member has placed enough orders with this brand.
-	 * - For platform/promo coupons: just validates active + dates + usage limit.
-	 * - Member can only hold ONE coupon at a time.
+	 * Claim flow:
+	 * - validates coupon activity/date window
+	 * - validates brand loyalty requirement using DELIVERED orders only
+	 * - creates one claim per member per coupon
+	 * - reserves claim capacity via couponUsageCount
+	 * - keeps legacy member coupon fields synced temporarily for current UI
 	 */
 	public async claimCoupon(memberId: ObjectId, couponCode: string): Promise<Member> {
 		const now = new Date();
@@ -143,100 +206,126 @@ export class CouponService {
 			.exec();
 		if (!coupon) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		// Check global usage limit
-		if (coupon.couponMaxUsage !== undefined && coupon.couponUsageCount >= coupon.couponMaxUsage) {
-			throw new BadRequestException(Message.BAD_REQUEST);
-		}
-
 		const member = await this.memberModel.findById(memberId).exec();
 		if (!member) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		// Block if member already holds an ACTIVE coupon
-		if (member.memberCouponId && member.memberCouponStatus === CouponStatus.ACTIVE) {
-			throw new BadRequestException(Message.BAD_REQUEST);
+		const existingClaim = await this.couponClaimModel.findOne({ couponId: coupon._id, memberId }).lean().exec();
+		if (existingClaim) {
+			throw new BadRequestException(Message.COUPON_ALREADY_CLAIMED);
 		}
 
-		// Block re-claiming same coupon even after it was used/expired
-		if (member.memberCouponId && member.memberCouponId.toString() === coupon._id.toString()) {
-			throw new BadRequestException(Message.BAD_REQUEST);
-		}
-
-		// Brand milestone check
 		if (coupon.couponType === CouponType.BRAND && coupon.minOrderCount) {
-			const brandOrderCount = await this.countMemberOrdersWithBrand(memberId, coupon.brandId as ObjectId);
-			if (brandOrderCount < coupon.minOrderCount) throw new BadRequestException(Message.BAD_REQUEST);
+			const brandOrderCount = await this.countMemberDeliveredOrdersWithBrand(memberId, coupon.brandId as ObjectId);
+			if (brandOrderCount < coupon.minOrderCount) {
+				throw new BadRequestException(Message.COUPON_NOT_ELIGIBLE);
+			}
 		}
 
-		// Assign coupon to member
-		const result = await this.memberModel
-			.findByIdAndUpdate(
+		let createdClaim: CouponClaim | null = null;
+		try {
+			createdClaim = await this.couponClaimModel.create({
+				couponId: coupon._id,
 				memberId,
-				{
-					memberCouponId: coupon._id,
-					memberCouponStatus: CouponStatus.ACTIVE,
-					memberCouponAssignedAt: now,
-					memberCouponUsedAt: null,
-				},
-				{ new: true },
-			)
-			.exec();
-		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
-		return result;
+				brandId: coupon.couponType === CouponType.BRAND ? coupon.brandId : undefined,
+				claimStatus: CouponClaimStatus.CLAIMED,
+				claimedAt: now,
+			});
+
+			const reservedCoupon = await this.reserveCouponSlot(coupon._id as unknown as ObjectId);
+			if (!reservedCoupon) {
+				await this.couponClaimModel.findByIdAndDelete(createdClaim._id).exec();
+				throw new BadRequestException(Message.COUPON_CLAIM_LIMIT_REACHED);
+			}
+
+			const result = await this.memberModel
+				.findByIdAndUpdate(
+					memberId,
+					{
+						memberCouponId: coupon._id,
+						memberCouponStatus: CouponStatus.ACTIVE,
+						memberCouponAssignedAt: now,
+						memberCouponUsedAt: null,
+					},
+					{ new: true },
+				)
+				.exec();
+
+			if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+			return result;
+		} catch (err: any) {
+			if (err?.code === 11000) {
+				throw new BadRequestException(Message.COUPON_ALREADY_CLAIMED);
+			}
+			throw err instanceof BadRequestException ? err : new BadRequestException(Message.CREATE_FAILED);
+		}
 	}
 
 	/**
-	 * checkCoupon — at checkout: verifies member owns this coupon and it is unused.
-	 * Returns the coupon so the frontend can show the discount.
+	 * Checkout validates one active claim for this member+coupon.
+	 * Legacy member coupon fields are not used as the business source anymore.
 	 */
 	public async checkCoupon(memberId: ObjectId, couponCode: string): Promise<Coupon> {
 		const now = new Date();
-		const [coupon, member] = await Promise.all([
-			this.couponModel
-				.findOne({
-					couponCode,
-					couponStatus: CouponStatus.ACTIVE,
-					couponStartDate: { $lte: now },
-					couponEndDate: { $gte: now },
-				})
-				.exec(),
-			this.memberModel.findById(memberId).exec(),
-		]);
+		const coupon = await this.couponModel
+			.findOne({
+				couponCode,
+				couponStatus: CouponStatus.ACTIVE,
+				couponStartDate: { $lte: now },
+				couponEndDate: { $gte: now },
+			})
+			.exec();
 		if (!coupon) throw new BadRequestException(Message.NO_DATA_FOUND);
-		if (!member) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		if (!member.memberCouponId || member.memberCouponId.toString() !== coupon._id.toString()) {
-			throw new BadRequestException(Message.BAD_REQUEST);
-		}
-		if (member.memberCouponStatus !== CouponStatus.ACTIVE) {
-			throw new BadRequestException(Message.BAD_REQUEST);
+		const claim = await this.couponClaimModel
+			.findOne({
+				couponId: coupon._id,
+				memberId,
+				claimStatus: CouponClaimStatus.CLAIMED,
+			})
+			.exec();
+
+		if (!claim) {
+			throw new BadRequestException(Message.COUPON_NOT_CLAIMED);
 		}
 
 		return coupon;
 	}
 
 	/**
-	 * useCoupon — internal, called by OrderService after order is created.
-	 * Accepts the coupon ObjectId directly (already resolved by checkCoupon) to avoid an extra DB hit.
+	 * Called by OrderService after order creation succeeds.
+	 * Marks one active claim as USED. couponUsageCount is already consumed at claim time.
 	 */
 	public async useCoupon(memberId: ObjectId, couponId: ObjectId): Promise<void> {
-		await Promise.all([
-			this.memberModel.findByIdAndUpdate(memberId, {
-				memberCouponStatus: CouponStatus.EXPIRED,
-				memberCouponUsedAt: new Date(),
-			}),
-			this.couponModel.findByIdAndUpdate(couponId, { $inc: { couponUsageCount: 1 } }),
-		]);
+		const now = new Date();
+		const claim = await this.couponClaimModel
+			.findOneAndUpdate(
+				{
+					couponId,
+					memberId,
+					claimStatus: CouponClaimStatus.CLAIMED,
+				},
+				{
+					claimStatus: CouponClaimStatus.USED,
+					usedAt: now,
+				},
+				{ new: true },
+			)
+			.exec();
+
+		if (!claim) {
+			throw new BadRequestException(Message.COUPON_NOT_CLAIMED);
+		}
+
+		await this.syncLegacyMemberCoupon(memberId, couponId, now);
 	}
 
-	/** Count distinct orders that contain at least one product from the given brand */
-	private async countMemberOrdersWithBrand(memberId: ObjectId, brandId: ObjectId): Promise<number> {
-		// Find all productIds belonging to this brand
+	/** Count distinct delivered orders that contain at least one product from the given brand */
+	private async countMemberDeliveredOrdersWithBrand(memberId: ObjectId, brandId: ObjectId): Promise<number> {
 		const brandProducts = await this.productModel.find({ memberId: brandId }, { _id: 1 }).lean().exec();
 		const brandProductIds = brandProducts.map((p) => p._id);
 
 		if (!brandProductIds.length) return 0;
 
-		// Count distinct orderId values in orderItems for this member's orders
 		const result = await this.orderItemModel
 			.aggregate([
 				{ $match: { productId: { $in: brandProductIds } } },
@@ -249,13 +338,70 @@ export class CouponService {
 					},
 				},
 				{ $unwind: '$order' },
-				{ $match: { 'order.memberId': memberId } },
+				{
+					$match: {
+						'order.memberId': memberId,
+						'order.orderStatus': OrderStatus.DELIVERED,
+					},
+				},
 				{ $group: { _id: '$orderId' } },
 				{ $count: 'total' },
 			])
 			.exec();
 
 		return result[0]?.total ?? 0;
+	}
+
+	private async reserveCouponSlot(couponId: ObjectId): Promise<Coupon | null> {
+		const coupon = await this.couponModel.findById(couponId).lean().exec();
+		if (!coupon) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+		if (coupon.couponMaxUsage === undefined) {
+			return await this.couponModel
+				.findByIdAndUpdate(couponId, { $inc: { couponUsageCount: 1 } }, { new: true })
+				.exec();
+		}
+
+		return await this.couponModel
+			.findOneAndUpdate(
+				{
+					_id: couponId,
+					couponUsageCount: { $lt: coupon.couponMaxUsage },
+				},
+				{ $inc: { couponUsageCount: 1 } },
+				{ new: true },
+			)
+			.exec();
+	}
+
+	private async syncLegacyMemberCoupon(memberId: ObjectId, usedCouponId: ObjectId, usedAt: Date): Promise<void> {
+		const nextClaim = await this.couponClaimModel
+			.findOne({
+				memberId,
+				claimStatus: CouponClaimStatus.CLAIMED,
+			})
+			.sort({ claimedAt: -1 })
+			.exec();
+
+		if (nextClaim) {
+			await this.memberModel
+				.findByIdAndUpdate(memberId, {
+					memberCouponId: nextClaim.couponId,
+					memberCouponStatus: CouponStatus.ACTIVE,
+					memberCouponAssignedAt: nextClaim.claimedAt,
+					memberCouponUsedAt: null,
+				})
+				.exec();
+			return;
+		}
+
+		await this.memberModel
+			.findByIdAndUpdate(memberId, {
+				memberCouponId: usedCouponId,
+				memberCouponStatus: CouponStatus.EXPIRED,
+				memberCouponUsedAt: usedAt,
+			})
+			.exec();
 	}
 
 	/** Expose discount calculation helper for OrderService */

@@ -20,6 +20,10 @@ export enum Message {
 	PROVIDE_ALLOWED_FORMAT = 'Please provide jpg, jpeg or png images!',
 	SELF_SUBSCRIPTION_DENIED = 'Self subscription is denied!',
 	ALREADY_REVIEWED_PRODUCT = 'You already reviewed this product!',
+	COUPON_ALREADY_CLAIMED = 'You already claimed this coupon!',
+	COUPON_CLAIM_LIMIT_REACHED = 'Coupon claim limit has been reached!',
+	COUPON_NOT_ELIGIBLE = 'You are not eligible to claim this coupon!',
+	COUPON_NOT_CLAIMED = 'You have not claimed this coupon!',
 }
 
 export enum Direction {

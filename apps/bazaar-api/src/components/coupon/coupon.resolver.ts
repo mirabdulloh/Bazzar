@@ -6,8 +6,15 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Coupon, Coupons } from '../../libs/dto/coupons/coupon';
+import { CouponClaimsData } from '../../libs/dto/coupons/coupon-claim';
 import { Member } from '../../libs/dto/member/member';
-import { BrandCouponInput, BrandCouponsInquiry, CouponInput, CouponsInquiry } from '../../libs/dto/coupons/coupon.input';
+import {
+	BrandCouponInput,
+	BrandCouponsInquiry,
+	CouponInput,
+	CouponsInquiry,
+} from '../../libs/dto/coupons/coupon.input';
+import { CouponClaimsInquiry } from '../../libs/dto/coupons/coupon-claim.input';
 import { BrandCouponUpdate, CouponUpdate } from '../../libs/dto/coupons/coupon.update';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { shapeIntoMongoObjectId } from '../../libs/config';
@@ -35,6 +42,15 @@ export class CouponResolver {
 		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Member> {
 		return await this.couponService.claimCoupon(memberId, couponCode);
+	}
+
+	@UseGuards(AuthGuard)
+	@Query(() => CouponClaimsData)
+	public async getMyCouponClaims(
+		@Args('input') input: CouponClaimsInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<CouponClaimsData> {
+		return await this.couponService.getMyCouponClaims(memberId, input);
 	}
 
 	/** BRAND — create a brand-scoped coupon */
