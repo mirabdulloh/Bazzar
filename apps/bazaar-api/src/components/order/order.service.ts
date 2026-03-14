@@ -202,7 +202,7 @@ export class OrderService {
 			await this.memberService.memberStatsEdits({
 				_id: memberId,
 				targetKey: 'memberPoints',
-				modifier: Math.floor(cartTotalPrice * 0.01),
+				modifier: createdOrders.length,
 			});
 
 			const member = await this.memberService.getMemberById(memberId);
@@ -313,8 +313,27 @@ export class OrderService {
 		const updated = await this.orderModel.findByIdAndUpdate(orderId, payload, { new: true }).exec();
 		if (!updated) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
-		if (existingOrder.orderStatus !== OrderStatus.CANCELLED && input.orderStatus === OrderStatus.CANCELLED) {
+		if (
+			![OrderStatus.CANCELLED, OrderStatus.REFUNDED].includes(existingOrder.orderStatus) &&
+			input.orderStatus === OrderStatus.CANCELLED
+		) {
 			await this.restoreStockForOrder(orderId);
+			await this.memberService.memberStatsEdits({
+				_id: existingOrder.memberId as unknown as ObjectId,
+				targetKey: 'memberPoints',
+				modifier: -1,
+			});
+		}
+
+		if (
+			![OrderStatus.CANCELLED, OrderStatus.REFUNDED].includes(existingOrder.orderStatus) &&
+			input.orderStatus === OrderStatus.REFUNDED
+		) {
+			await this.memberService.memberStatsEdits({
+				_id: existingOrder.memberId as unknown as ObjectId,
+				targetKey: 'memberPoints',
+				modifier: -1,
+			});
 		}
 
 		if (input.orderStatus) {
@@ -408,6 +427,11 @@ export class OrderService {
 		if (!updated) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
 		await this.restoreStockForOrder(orderId);
+		await this.memberService.memberStatsEdits({
+			_id: memberId,
+			targetKey: 'memberPoints',
+			modifier: -1,
+		});
 		await this.notifyOrderStatusChange(updated, OrderStatus.CANCELLED, 'Order Cancelled');
 
 		return await this.getOrderForReturn(orderId);
@@ -457,6 +481,11 @@ export class OrderService {
 
 		if (input.orderStatus === OrderStatus.CANCELLED) {
 			await this.restoreStockForOrder(orderId);
+			await this.memberService.memberStatsEdits({
+				_id: order.memberId as unknown as ObjectId,
+				targetKey: 'memberPoints',
+				modifier: -1,
+			});
 		}
 
 		await this.notifyOrderStatusChange(updated, input.orderStatus, notificationTitle, brandId);
