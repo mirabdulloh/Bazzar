@@ -1,9 +1,9 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { OrderService } from './order.service';
-import { Order, OrdersData } from '../../libs/dto/order/order';
+import { CreatedOrdersPayload, Order, OrdersData } from '../../libs/dto/order/order';
 import { CreateOrderInput, MyOrdersInquiry, AllOrdersInquiry, BrandOrdersInquiry } from '../../libs/dto/order/order.input';
-import { OrderUpdate } from '../../libs/dto/order/order.update';
+import { BrandOrderUpdate, OrderUpdate } from '../../libs/dto/order/order.update';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -20,11 +20,11 @@ export class OrderResolver {
 
 	// ! Create Order
 	@UseGuards(AuthGuard)
-	@Mutation(() => Order)
+	@Mutation(() => CreatedOrdersPayload)
 	public async createOrder(
 		@Args('input') input: CreateOrderInput,
 		@AuthMember('_id') memberId: ObjectId,
-	): Promise<Order> {
+	): Promise<CreatedOrdersPayload> {
 		return await this.orderService.createOrder(memberId, input);
 	}
 
@@ -46,6 +46,26 @@ export class OrderResolver {
 	@Mutation(() => Order)
 	public async updateOrderByAdmin(@Args('input') input: OrderUpdate): Promise<Order> {
 		return await this.orderService.updateOrderByAdmin(input);
+	}
+
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => Order)
+	public async updateOrderByBrand(
+		@Args('input') input: BrandOrderUpdate,
+		@AuthMember('_id') brandId: ObjectId,
+	): Promise<Order> {
+		return await this.orderService.updateOrderByBrand(brandId, input);
+	}
+
+	@UseGuards(AuthGuard)
+	@Mutation(() => Order)
+	public async confirmOrderReceived(
+		@Args('orderId') orderId: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Order> {
+		const id = shapeIntoMongoObjectId(orderId);
+		return this.orderService.confirmOrderReceived(memberId, id);
 	}
 
 	// * QUERIES *

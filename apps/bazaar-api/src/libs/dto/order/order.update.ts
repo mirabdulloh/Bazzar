@@ -34,3 +34,14 @@ export class OrderUpdate {
 	@Field(() => OrderDeliveryStatus, { nullable: true })
 	orderDeliveryStatus?: OrderDeliveryStatus;
 }
+
+@InputType()
+export class BrandOrderUpdate {
+	@IsMongoId()
+	@Field(() => String)
+	_id: ObjectId;
+
+	@IsEnum(OrderStatus)
+	@Field(() => OrderStatus)
+	orderStatus: OrderStatus;
+}

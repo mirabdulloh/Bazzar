@@ -13,6 +13,9 @@ export class Order {
 	@Field(() => String)
 	memberId: ObjectId;
 
+	@Field(() => String)
+	brandId: ObjectId;
+
 	@Field(() => OrderStatus)
 	orderStatus: OrderStatus;
 
@@ -47,6 +50,9 @@ export class Order {
 	@Field(() => Member, { nullable: true })
 	member?: Member;
 
+	@Field(() => Member, { nullable: true })
+	brand?: Member;
+
 	@Field(() => Address, { nullable: true })
 	deliveryAddress?: Address;
 
@@ -61,4 +67,10 @@ export class OrdersData {
 
 	@Field(() => MetaData)
 	metaData: MetaData;
+}
+
+@ObjectType()
+export class CreatedOrdersPayload {
+	@Field(() => [Order])
+	orders: Order[];
 }

@@ -8,6 +8,11 @@ const OrderSchema = new Schema(
 			required: true,
 		},
 
+		brandId: {
+			type: Schema.Types.ObjectId,
+			required: true,
+		},
+
 		orderStatus: {
 			type: String,
 			enum: OrderStatus,
@@ -57,5 +62,7 @@ const OrderSchema = new Schema(
 
 OrderSchema.index({ memberId: 1, createdAt: -1 });
 OrderSchema.index({ memberId: 1, orderStatus: 1 });
+OrderSchema.index({ brandId: 1, createdAt: -1 });
+OrderSchema.index({ brandId: 1, orderStatus: 1 });
 
 export default OrderSchema;

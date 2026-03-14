@@ -23,6 +23,12 @@ export class OrderItem {
 	@Field(() => Float)
 	subtotal: number;
 
+	@Field(() => String, { nullable: true })
+	selectedSize?: string;
+
+	@Field(() => String, { nullable: true })
+	selectedColor?: string;
+
 	@Field(() => Date)
 	createdAt: Date;
 

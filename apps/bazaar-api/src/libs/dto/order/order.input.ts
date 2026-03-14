@@ -28,6 +28,16 @@ export class CreateOrderItemInput {
 	@Min(1)
 	@Field(() => Int)
 	itemQuantity: number;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	selectedSize?: string;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	selectedColor?: string;
 }
 
 // ! CreateOrderInput - what the client actually sends to create an order
