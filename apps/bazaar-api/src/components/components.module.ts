@@ -18,9 +18,11 @@ import { NotificationModule } from './notification/notification.module';
 import { ChatModule } from './chat/chat.module';
 import { MessagesChatModule } from './messages-chat/messages-chat.module';
 import { FaqModule } from './faq/faq.module';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 
 @Module({
 	imports: [
+		AdminDashboardModule,
 		MemberModule,
 		BrandModule,
 		CategoryModule,
