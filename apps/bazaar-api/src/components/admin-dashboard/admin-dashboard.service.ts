@@ -94,11 +94,30 @@ export class AdminDashboardService {
 
 	private async getPendingBrandQueue(): Promise<AdminDashboardPendingBrand[]> {
 		return this.brandModel
-			.find({ brandStatus: BrandStatus.PENDING })
-			.sort({ createdAt: 1 })
-			.limit(5)
-			.select('_id brandName brandLogo brandStatus createdAt')
-			.lean<AdminDashboardPendingBrand[]>()
+			.aggregate([
+				{ $match: { brandStatus: BrandStatus.PENDING } },
+				{ $sort: { createdAt: 1 } },
+				{ $limit: 5 },
+				{
+					$lookup: {
+						from: 'members',
+						localField: '_id',
+						foreignField: '_id',
+						as: 'memberData',
+					},
+				},
+				{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+				{
+					$project: {
+						_id: 1,
+						brandName: 1,
+						brandLogo: 1,
+						memberImage: '$memberData.memberImage',
+						brandStatus: 1,
+						createdAt: 1,
+					},
+				},
+			])
 			.exec();
 	}
 

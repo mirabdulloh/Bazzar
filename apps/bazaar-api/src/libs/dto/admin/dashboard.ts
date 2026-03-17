@@ -14,6 +14,9 @@ export class AdminDashboardPendingBrand {
 	@Field(() => String, { nullable: true })
 	brandLogo?: string;
 
+	@Field(() => String, { nullable: true })
+	memberImage?: string;
+
 	@Field(() => BrandStatus)
 	brandStatus: BrandStatus;
 
