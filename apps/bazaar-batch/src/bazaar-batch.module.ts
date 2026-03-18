@@ -25,4 +25,4 @@ import NotificationSchema from 'apps/bazaar-api/src/schemas/Notifications.model'
 	controllers: [BatchController],
 	providers: [BatchService],
 })
-export class BatchModule {}
+export class BazaarBatchModule {}
