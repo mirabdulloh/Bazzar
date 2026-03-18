@@ -2,28 +2,69 @@ import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsEnum, IsInt, IsMongoId, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { Direction } from '../../enums/common.enum';
-import { ChatStatus } from '../../enums/chat.enum';
+import { ChatRequesterType, ChatScope, ChatStatus } from '../../enums/chat.enum';
 
-// Member opens (or reopens) a conversation with a brand
 @InputType()
-export class OpenChatInput {
+export class OpenBrandChatInput {
 	@IsMongoId()
 	@Field(() => String)
 	brandId: ObjectId;
 
-	@IsNotEmpty()
+	@IsOptional()
 	@IsString()
-	@Field(() => String)
-	chatSubject: string;
+	@Field(() => String, { nullable: true })
+	chatSubject?: string;
 }
 
-// User / Brand — can only filter by chatStatus (identity comes from auth token)
+@InputType()
+export class OpenSupportChatInput {
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	supportTopic?: string;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	sourcePath?: string;
+}
+
 @InputType()
 class ChatsSearch {
 	@IsOptional()
 	@IsEnum(ChatStatus)
 	@Field(() => ChatStatus, { nullable: true })
 	chatStatus?: ChatStatus;
+
+	@IsOptional()
+	@IsEnum(ChatScope)
+	@Field(() => ChatScope, { nullable: true })
+	chatScope?: ChatScope;
+
+	@IsOptional()
+	@IsEnum(ChatRequesterType)
+	@Field(() => ChatRequesterType, { nullable: true })
+	requesterType?: ChatRequesterType;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	requesterId?: ObjectId;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	brandId?: ObjectId;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	assignedAdminId?: ObjectId;
+
+	@IsOptional()
+	@IsString()
+	@Field(() => String, { nullable: true })
+	keyword?: string;
 }
 
 @InputType()
@@ -50,45 +91,12 @@ export class ChatsInquiry {
 	search?: ChatsSearch;
 }
 
-// Admin — can filter by chatStatus, brandId, memberId
 @InputType()
-class ChatsSearchByAdmin {
-	@IsOptional()
-	@IsEnum(ChatStatus)
-	@Field(() => ChatStatus, { nullable: true })
-	chatStatus?: ChatStatus;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	brandId?: ObjectId;
-
-	@IsOptional()
-	@IsMongoId()
-	@Field(() => String, { nullable: true })
-	memberId?: ObjectId;
-}
+export class ChatsInquiryByAdmin extends ChatsInquiry {}
 
 @InputType()
-export class ChatsInquiryByAdmin {
-	@IsNotEmpty()
-	@IsInt()
-	@Min(1)
-	@Field(() => Int)
-	page: number;
-
-	@IsNotEmpty()
-	@IsInt()
-	@Min(1)
-	@Field(() => Int)
-	limit: number;
-
-	@IsOptional()
-	@IsEnum(Direction)
-	@Field(() => Direction, { nullable: true })
-	direction?: Direction;
-
-	@IsOptional()
-	@Field(() => ChatsSearchByAdmin, { nullable: true })
-	search?: ChatsSearchByAdmin;
+export class GetChatInput {
+	@IsMongoId()
+	@Field(() => String)
+	chatId: ObjectId;
 }

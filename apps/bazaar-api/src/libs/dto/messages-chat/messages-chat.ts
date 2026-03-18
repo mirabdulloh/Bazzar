@@ -1,7 +1,8 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { Member, MetaCounter } from '../member/member';
-import { Chat } from '../chat/chat';
+import { ChatMessageType } from '../../enums/chat.enum';
+import { MemberType } from '../../enums/member.enum';
 
 @ObjectType()
 export class MessageChat {
@@ -14,8 +15,14 @@ export class MessageChat {
 	@Field(() => String)
 	senderId: ObjectId;
 
-	@Field(() => String)
-	message: string;
+	@Field(() => MemberType)
+	senderType: MemberType;
+
+	@Field(() => ChatMessageType)
+	messageType: ChatMessageType;
+
+	@Field(() => String, { nullable: true })
+	message?: string;
 
 	@Field(() => [String], { nullable: true })
 	attachments?: string[];
@@ -23,14 +30,14 @@ export class MessageChat {
 	@Field(() => String, { nullable: true })
 	replyToId?: ObjectId;
 
-	@Field(() => Date, { nullable: true })
-	readAt?: Date;
+	@Field(() => [String], { nullable: true })
+	readByMemberIds?: ObjectId[];
 
-	@Field(() => Date, { nullable: true })
-	memberDeletedAt?: Date;
+	@Field(() => Boolean)
+	isReadByMe: boolean;
 
-	@Field(() => Date, { nullable: true })
-	brandDeletedAt?: Date;
+	@Field(() => Boolean)
+	isOwnMessage: boolean;
 
 	@Field(() => Date, { nullable: true })
 	deletedAt?: Date;
@@ -40,10 +47,6 @@ export class MessageChat {
 
 	@Field(() => Date)
 	updatedAt: Date;
-
-	// Relationships
-	@Field(() => Chat, { nullable: true })
-	conversationData?: Chat;
 
 	@Field(() => Member, { nullable: true })
 	senderData?: Member;

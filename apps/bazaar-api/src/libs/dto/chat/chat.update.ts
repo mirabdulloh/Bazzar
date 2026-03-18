@@ -13,4 +13,9 @@ export class ChatUpdate {
 	@IsEnum(ChatStatus)
 	@Field(() => ChatStatus, { nullable: true })
 	chatStatus?: ChatStatus;
+
+	@IsOptional()
+	@IsMongoId()
+	@Field(() => String, { nullable: true })
+	assignedAdminId?: ObjectId;
 }

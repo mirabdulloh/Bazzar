@@ -2,18 +2,22 @@ import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsArray, IsEnum, IsInt, IsMongoId, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { Direction } from '../../enums/common.enum';
+import { ChatMessageType } from '../../enums/chat.enum';
 
-// Sent by member or brand to add a message to a conversation
 @InputType()
 export class SendMessageInput {
 	@IsMongoId()
 	@Field(() => String)
 	conversationId: ObjectId;
 
-	@IsNotEmpty()
+	@IsEnum(ChatMessageType)
+	@Field(() => ChatMessageType)
+	messageType: ChatMessageType;
+
+	@IsOptional()
 	@IsString()
-	@Field(() => String)
-	message: string;
+	@Field(() => String, { nullable: true })
+	message?: string;
 
 	@IsOptional()
 	@IsArray()
@@ -33,6 +37,11 @@ export class MessagesSearch {
 	@IsString()
 	@Field(() => String, { nullable: true })
 	text?: string;
+
+	@IsOptional()
+	@IsEnum(ChatMessageType)
+	@Field(() => ChatMessageType, { nullable: true })
+	messageType?: ChatMessageType;
 }
 
 @InputType()

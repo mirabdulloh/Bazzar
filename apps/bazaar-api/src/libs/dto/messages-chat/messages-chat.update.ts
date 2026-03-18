@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
 import { ObjectId } from 'mongoose';
 
 @InputType()
@@ -12,6 +12,12 @@ export class MessageChatUpdate {
 	@IsString()
 	@Field(() => String, { nullable: true })
 	message?: string;
+
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	@Field(() => [String], { nullable: true })
+	attachments?: string[];
 }
 
 @InputType()
