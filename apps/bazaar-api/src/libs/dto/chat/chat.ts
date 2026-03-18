@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { ChatMessageType, ChatRequesterType, ChatScope, ChatStatus } from '../../enums/chat.enum';
 import { Member, MetaCounter } from '../member/member';
@@ -73,13 +73,13 @@ export class Chat {
 	@Field(() => String, { nullable: true })
 	lastMessageSenderId?: ObjectId;
 
-	@Field(() => Number)
+	@Field(() => Int)
 	unreadRequesterCount: number;
 
-	@Field(() => Number)
+	@Field(() => Int)
 	unreadResponderCount: number;
 
-	@Field(() => Number)
+	@Field(() => Int)
 	unreadCount: number;
 
 	@Field(() => Boolean)

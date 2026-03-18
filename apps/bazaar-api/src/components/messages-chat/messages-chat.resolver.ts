@@ -8,7 +8,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
 import { MessageChat, MessageChats } from '../../libs/dto/messages-chat/messages-chat';
-import { SendMessageInput, MessagesInquiry } from '../../libs/dto/messages-chat/messages-chat.input';
+import { MessagesInquiry, SendMessageInput } from '../../libs/dto/messages-chat/messages-chat.input';
 import { MessageChatUpdate, RemoveMessageInput } from '../../libs/dto/messages-chat/messages-chat.update';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 
@@ -16,18 +16,16 @@ import { shapeIntoMongoObjectId } from '../../libs/config';
 export class MessagesChatResolver {
 	constructor(private readonly messagesChatService: MessagesChatService) {}
 
-	/** USER / BRAND */
-
 	@UseGuards(AuthGuard)
 	@Mutation(() => MessageChat)
 	public async sendMessage(
 		@Args('input') input: SendMessageInput,
 		@AuthMember('_id') senderId: ObjectId,
+		@AuthMember('memberType') senderType: MemberType,
 	): Promise<MessageChat> {
-		console.log('Mutation: sendMessage');
 		input.conversationId = shapeIntoMongoObjectId(input.conversationId);
 		if (input.replyToId) input.replyToId = shapeIntoMongoObjectId(input.replyToId);
-		return await this.messagesChatService.sendMessage(senderId, input);
+		return await this.messagesChatService.sendMessage(senderId, senderType, input);
 	}
 
 	@UseGuards(AuthGuard)
@@ -35,10 +33,10 @@ export class MessagesChatResolver {
 	public async getMessages(
 		@Args('input') input: MessagesInquiry,
 		@AuthMember('_id') userId: ObjectId,
+		@AuthMember('memberType') userType: MemberType,
 	): Promise<MessageChats> {
-		console.log('Query: getMessages');
 		input.conversationId = shapeIntoMongoObjectId(input.conversationId);
-		return await this.messagesChatService.getMessages(userId, input);
+		return await this.messagesChatService.getMessages(userId, userType, input);
 	}
 
 	@UseGuards(AuthGuard)
@@ -46,10 +44,10 @@ export class MessagesChatResolver {
 	public async updateMessageChat(
 		@Args('input') input: MessageChatUpdate,
 		@AuthMember('_id') senderId: ObjectId,
+		@AuthMember('memberType') senderType: MemberType,
 	): Promise<MessageChat> {
-		console.log('Mutation: updateMessageChat');
 		input._id = shapeIntoMongoObjectId(input._id);
-		return await this.messagesChatService.updateMessageChat(senderId, input);
+		return await this.messagesChatService.updateMessageChat(senderId, senderType, input);
 	}
 
 	@UseGuards(AuthGuard)
@@ -57,29 +55,34 @@ export class MessagesChatResolver {
 	public async removeMessageChat(
 		@Args('input') input: RemoveMessageInput,
 		@AuthMember('_id') senderId: ObjectId,
+		@AuthMember('memberType') senderType: MemberType,
 	): Promise<MessageChat> {
-		console.log('Mutation: removeMessageChat');
-		const id = shapeIntoMongoObjectId(input.messageId);
-		return await this.messagesChatService.removeMessageChat(senderId, id, input.deleteForEveryone);
+		return await this.messagesChatService.removeMessageChat(
+			senderId,
+			senderType,
+			shapeIntoMongoObjectId(input.messageId),
+			input.deleteForEveryone,
+		);
 	}
-
-	/** ADMIN */
 
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Query(() => MessageChats)
-	public async getAllMessagesByAdmin(@Args('input') input: MessagesInquiry): Promise<MessageChats> {
-		console.log('Query: getAllMessagesByAdmin');
+	public async getAllMessagesByAdmin(
+		@Args('input') input: MessagesInquiry,
+		@AuthMember('_id') adminId: ObjectId,
+	): Promise<MessageChats> {
 		input.conversationId = shapeIntoMongoObjectId(input.conversationId);
-		return await this.messagesChatService.getAllMessagesByAdmin(input);
+		return await this.messagesChatService.getAllMessagesByAdmin(adminId, input);
 	}
 
 	@Roles(MemberType.ADMIN)
 	@UseGuards(AuthGuard, RolesGuard)
 	@Mutation(() => MessageChat)
-	public async removeMessageChatByAdmin(@Args('messageId') messageId: string): Promise<MessageChat> {
-		console.log('Mutation: removeMessageChatByAdmin');
-		const id = shapeIntoMongoObjectId(messageId);
-		return await this.messagesChatService.removeMessageChatByAdmin(id);
+	public async removeMessageChatByAdmin(
+		@Args('messageId') messageId: string,
+		@AuthMember('_id') adminId: ObjectId,
+	): Promise<MessageChat> {
+		return await this.messagesChatService.removeMessageChatByAdmin(adminId, shapeIntoMongoObjectId(messageId));
 	}
 }

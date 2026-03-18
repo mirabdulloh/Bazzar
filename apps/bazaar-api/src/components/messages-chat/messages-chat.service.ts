@@ -1,12 +1,13 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId } from 'mongoose';
+import { Model, ObjectId, Types } from 'mongoose';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import { SendMessageInput, MessagesInquiry } from '../../libs/dto/messages-chat/messages-chat.input';
+import { ChatMessageType } from '../../libs/enums/chat.enum';
+import { MemberType } from '../../libs/enums/member.enum';
+import { MessagesInquiry, SendMessageInput } from '../../libs/dto/messages-chat/messages-chat.input';
 import { MessageChat, MessageChats } from '../../libs/dto/messages-chat/messages-chat';
 import { MessageChatUpdate } from '../../libs/dto/messages-chat/messages-chat.update';
 import { ChatService } from '../chat/chat.service';
-import { SocketGateway } from '../../socket/socket.gateway';
 import { T } from '../../libs/types/common';
 
 @Injectable()
@@ -14,77 +15,59 @@ export class MessagesChatService {
 	constructor(
 		@InjectModel('MessageChat') private readonly messageChatModel: Model<MessageChat>,
 		private readonly chatService: ChatService,
-		private readonly socketGateway: SocketGateway,
 	) {}
 
-	/** USER / BRAND — send a message in a conversation */
-	public async sendMessage(senderId: ObjectId, input: SendMessageInput): Promise<MessageChat> {
-		const { conversationId, message, attachments, replyToId } = input;
+	public async sendMessage(senderId: ObjectId, senderType: MemberType, input: SendMessageInput): Promise<MessageChat> {
+		const chat = await this.chatService.getChatById(input.conversationId);
+		if (!chat) throw new NotFoundException(Message.NO_DATA_FOUND);
 
-		// Verify sender is a participant
-		const chat = await this.chatService.getChatById(conversationId);
-		if (!chat) throw new BadRequestException(Message.NO_DATA_FOUND);
+		const access = this.chatService.getChatAccessContext(chat, senderId, senderType, true);
+		this.assertMessagePayload(input);
 
-		const memberIdStr = chat.memberId.toString();
-		const brandIdStr = chat.brandId.toString();
-		const senderIdStr = senderId.toString();
-
-		if (senderIdStr !== memberIdStr && senderIdStr !== brandIdStr) {
-			throw new BadRequestException(Message.BAD_REQUEST);
-		}
-
-		// Validate parent message belongs to the same conversation
-		if (replyToId) {
-			const parent = await this.messageChatModel.findOne({ _id: replyToId, conversationId }).lean().exec();
+		if (input.replyToId) {
+			const parent = await this.messageChatModel
+				.findOne({ _id: input.replyToId, conversationId: input.conversationId, deletedAt: { $exists: false } })
+				.lean()
+				.exec();
 			if (!parent) throw new BadRequestException(Message.NO_DATA_FOUND);
 		}
 
 		const result = await this.messageChatModel.create({
-			conversationId,
+			conversationId: input.conversationId,
 			senderId,
-			message,
-			attachments: attachments ?? [],
-			...(replyToId && { replyToId }),
+			senderType,
+			messageType: input.messageType,
+			message: input.message?.trim() || null,
+			attachments: input.attachments ?? [],
+			replyToId: input.replyToId ?? null,
+			readByMemberIds: [senderId],
 		});
 
-		// Bump the chat's updatedAt so it rises to the top of the sorted conversation list
-		this.chatService.touchChat(conversationId).catch(() => {});
-
-		// Real-time push to the other participant
-		const receiverId = senderIdStr === memberIdStr ? brandIdStr : memberIdStr;
-		this.socketGateway.emitToUser(receiverId, 'newMessage', result);
-
-		return result;
+		await this.chatService.registerSentMessage(input.conversationId, senderId, access.side, result.toObject());
+		return await this.getMessageById(result._id as ObjectId, senderId, senderType);
 	}
 
-	/** USER / BRAND — get paginated messages for a conversation */
-	public async getMessages(userId: ObjectId, input: MessagesInquiry): Promise<MessageChats> {
-		const { conversationId, page, limit } = input;
+	public async getMessages(userId: ObjectId, userType: MemberType, input: MessagesInquiry): Promise<MessageChats> {
+		const chat = await this.chatService.getChatById(input.conversationId);
+		if (!chat) throw new NotFoundException(Message.NO_DATA_FOUND);
 
-		// Verify requester is a participant
-		const chat = await this.chatService.getChatById(conversationId);
-		if (!chat) throw new BadRequestException(Message.NO_DATA_FOUND);
+		this.chatService.getChatAccessContext(chat, userId, userType);
 
-		const userIdStr = userId.toString();
-		const isMember = userIdStr === chat.memberId.toString();
-		const isBrand = userIdStr === chat.brandId.toString();
-
-		if (!isMember && !isBrand) {
-			throw new BadRequestException(Message.BAD_REQUEST);
-		}
-
-		const sort: T = { createdAt: input?.direction ?? Direction.ASC };
-
-		// Hide globally deleted messages AND messages the caller deleted for themselves
-		const sideDeletedField = isMember ? 'memberDeletedAt' : 'brandDeletedAt';
 		const match: T = {
-			conversationId,
+			conversationId: input.conversationId,
 			deletedAt: { $exists: false },
-			[sideDeletedField]: { $exists: false },
+			deletedForMemberIds: { $nin: [userId] },
 		};
+
 		if (input.search?.text) {
 			match.message = { $regex: input.search.text, $options: 'i' };
 		}
+
+		if (input.search?.messageType) {
+			match.messageType = input.search.messageType;
+		}
+
+		const sort: T = { createdAt: input?.direction ?? Direction.ASC };
 
 		const result = await this.messageChatModel
 			.aggregate([
@@ -93,8 +76,8 @@ export class MessagesChatService {
 				{
 					$facet: {
 						list: [
-							{ $skip: (page - 1) * limit },
-							{ $limit: limit },
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
 							{
 								$lookup: {
 									from: 'members',
@@ -120,83 +103,163 @@ export class MessagesChatService {
 			])
 			.exec();
 
-		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
-		return result[0];
+		const payload = result[0] ?? { list: [], metaCounter: [] };
+		return {
+			list: payload.list.map((item: T) => this.enrichMessageForViewer(item, userId)),
+			metaCounter: payload.metaCounter.length ? payload.metaCounter : [{ total: 0 }],
+		};
 	}
 
-	/** USER / BRAND — edit own message content */
-	public async updateMessageChat(senderId: ObjectId, input: MessageChatUpdate): Promise<MessageChat> {
-		const { _id, message } = input;
-		const result = await this.messageChatModel.findOneAndUpdate({ _id, senderId }, { message }, { new: true }).exec();
-		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
-		return result;
-	}
-
-	/** USER / BRAND — delete own message: for me only OR for everyone */
-	public async removeMessageChat(senderId: ObjectId, messageId: ObjectId, deleteForEveryone: boolean): Promise<MessageChat> {
-		// Load the message to verify participation and ownership
-		const message = await this.messageChatModel
-			.findOne({ _id: messageId, deletedAt: { $exists: false } })
-			.lean()
-			.exec();
-		if (!message) throw new NotFoundException(Message.NO_DATA_FOUND);
-
-		const chat = await this.chatService.getChatById(message.conversationId as ObjectId);
-		if (!chat) throw new BadRequestException(Message.NO_DATA_FOUND);
-
-		const memberIdStr = chat.memberId.toString();
-		const brandIdStr = chat.brandId.toString();
-		const senderIdStr = senderId.toString();
-
-		if (senderIdStr !== memberIdStr && senderIdStr !== brandIdStr) {
+	public async updateMessageChat(
+		senderId: ObjectId,
+		senderType: MemberType,
+		input: MessageChatUpdate,
+	): Promise<MessageChat> {
+		const existing = await this.messageChatModel.findById(input._id).lean().exec();
+		if (!existing || existing.deletedAt) throw new NotFoundException(Message.NO_DATA_FOUND);
+		if (existing.senderId.toString() !== senderId.toString()) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+		if (existing.messageType !== ChatMessageType.TEXT && input.message) {
 			throw new BadRequestException(Message.BAD_REQUEST);
 		}
 
-		let update: T;
-		if (deleteForEveryone) {
-			// Only the original sender can delete for everyone
-			if (message.senderId.toString() !== senderIdStr) {
-				throw new BadRequestException(Message.BAD_REQUEST);
-			}
-			update = { deletedAt: new Date() };
-		} else {
-			// Delete for me only — set the caller's side timestamp
-			const isMember = senderIdStr === memberIdStr;
-			update = { [isMember ? 'memberDeletedAt' : 'brandDeletedAt']: new Date() };
-		}
-
 		const result = await this.messageChatModel
-			.findOneAndUpdate({ _id: messageId }, update, { new: true })
-			.exec();
-		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
-		return result;
-	}
-
-	/** ADMIN — all messages across all conversations */
-	public async getAllMessagesByAdmin(input: MessagesInquiry): Promise<MessageChats> {
-		const sort: T = { createdAt: input?.direction ?? Direction.DESC };
-
-		const result = await this.messageChatModel
-			.aggregate([
-				{ $match: { conversationId: input.conversationId } },
-				{ $sort: sort },
+			.findOneAndUpdate(
+				{ _id: input._id, senderId, deletedAt: { $exists: false } },
 				{
-					$facet: {
-						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
-						metaCounter: [{ $count: 'total' }],
+					$set: {
+						...(typeof input.message !== 'undefined' ? { message: input.message?.trim() || null } : {}),
+						...(input.attachments ? { attachments: input.attachments } : {}),
 					},
 				},
+				{ new: true },
+			)
+			.exec();
+
+		if (!result) throw new NotFoundException(Message.UPDATE_FAILED);
+
+		const chat = await this.chatService.getChatById(result.conversationId as ObjectId);
+		if (chat?.lastMessageId?.toString() === result._id.toString()) {
+			await this.chatService.refreshLastMessageSummary(result.conversationId as ObjectId);
+		}
+
+		return await this.getMessageById(result._id as ObjectId, senderId, senderType);
+	}
+
+	public async removeMessageChat(
+		senderId: ObjectId,
+		senderType: MemberType,
+		messageId: ObjectId,
+		deleteForEveryone: boolean,
+	): Promise<MessageChat> {
+		const existing = await this.messageChatModel.findById(messageId).lean().exec();
+		if (!existing || existing.deletedAt) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		const chat = await this.chatService.getChatById(existing.conversationId as ObjectId);
+		if (!chat) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		this.chatService.getChatAccessContext(chat, senderId, senderType);
+
+		if (deleteForEveryone && existing.senderId.toString() !== senderId.toString()) {
+			throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+		}
+
+		const update = deleteForEveryone
+			? { $set: { deletedAt: new Date() } }
+			: { $addToSet: { deletedForMemberIds: new Types.ObjectId(senderId.toString()) } };
+
+		const result = await this.messageChatModel.findOneAndUpdate({ _id: messageId }, update, { new: true }).exec();
+		if (!result) throw new NotFoundException(Message.REMOVE_FAILED);
+
+		if (deleteForEveryone && chat.lastMessageId?.toString() === messageId.toString()) {
+			await this.chatService.refreshLastMessageSummary(existing.conversationId as ObjectId);
+		}
+
+		return this.enrichMessageForViewer(result.toObject(), senderId);
+	}
+
+	public async getAllMessagesByAdmin(adminId: ObjectId, input: MessagesInquiry): Promise<MessageChats> {
+		return await this.getMessages(adminId, MemberType.ADMIN, input);
+	}
+
+	public async removeMessageChatByAdmin(adminId: ObjectId, messageId: ObjectId): Promise<MessageChat> {
+		const existing = await this.messageChatModel.findById(messageId).lean().exec();
+		if (!existing) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		const chat = await this.chatService.getChatById(existing.conversationId as ObjectId);
+		if (!chat) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		this.chatService.getChatAccessContext(chat, adminId, MemberType.ADMIN);
+
+		const result = await this.messageChatModel.findOneAndUpdate({ _id: messageId }, { $set: { deletedAt: new Date() } }, { new: true }).exec();
+		if (!result) throw new NotFoundException(Message.REMOVE_FAILED);
+
+		if (chat.lastMessageId?.toString() === messageId.toString()) {
+			await this.chatService.refreshLastMessageSummary(existing.conversationId as ObjectId);
+		}
+
+		return this.enrichMessageForViewer(result.toObject(), adminId);
+	}
+
+	private async getMessageById(messageId: ObjectId, viewerId: ObjectId, viewerType: MemberType): Promise<MessageChat> {
+		const result = await this.messageChatModel
+			.aggregate([
+				{ $match: { _id: messageId, deletedAt: { $exists: false }, deletedForMemberIds: { $nin: [viewerId] } } },
+				{
+					$lookup: {
+						from: 'members',
+						localField: 'senderId',
+						foreignField: '_id',
+						as: 'senderData',
+					},
+				},
+				{ $unwind: { path: '$senderData', preserveNullAndEmptyArrays: true } },
+				{
+					$lookup: {
+						from: 'messages',
+						localField: 'replyToId',
+						foreignField: '_id',
+						as: 'parentMessageData',
+					},
+				},
+				{ $unwind: { path: '$parentMessageData', preserveNullAndEmptyArrays: true } },
 			])
 			.exec();
 
 		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
-		return result[0];
+
+		const chat = await this.chatService.getChatById(result[0].conversationId as ObjectId);
+		if (!chat) throw new NotFoundException(Message.NO_DATA_FOUND);
+		this.chatService.getChatAccessContext(chat, viewerId, viewerType);
+
+		return this.enrichMessageForViewer(result[0], viewerId);
 	}
 
-	/** ADMIN — hard delete a message */
-	public async removeMessageChatByAdmin(messageId: ObjectId): Promise<MessageChat> {
-		const result = await this.messageChatModel.findByIdAndDelete(messageId).exec();
-		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
-		return result;
+	private enrichMessageForViewer(message: T, viewerId: ObjectId): MessageChat {
+		const readByMemberIds = (message.readByMemberIds ?? []).map((id: ObjectId | string) => id.toString());
+		const viewerIdStr = viewerId.toString();
+
+		return {
+			...message,
+			readByMemberIds,
+			isReadByMe: readByMemberIds.includes(viewerIdStr) || message.senderId?.toString() === viewerIdStr,
+			isOwnMessage: message.senderId?.toString() === viewerIdStr,
+		} as MessageChat;
+	}
+
+	private assertMessagePayload(input: SendMessageInput): void {
+		const hasMessage = Boolean(input.message?.trim());
+		const hasAttachments = Boolean(input.attachments?.length);
+
+		if (input.messageType === ChatMessageType.TEXT && !hasMessage) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
+
+		if ((input.messageType === ChatMessageType.IMAGE || input.messageType === ChatMessageType.FILE) && !hasAttachments) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
+
+		if (!hasMessage && !hasAttachments) {
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
 	}
 }

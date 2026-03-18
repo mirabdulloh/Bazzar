@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { graphqlUploadExpress } from 'graphql-upload';
-import { WsAdapter } from '@nestjs/platform-ws';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { LoggingInterceptor } from './libs/interceptors/Loggin.interceptor';
 
 async function bootstrap() {
@@ -21,8 +21,7 @@ async function bootstrap() {
 	app.enableCors({ origin: process.env.CORS_ORIGIN || true, credentials: true });
 	app.use(graphqlUploadExpress({ maxFileSize: 15000000, maxFiles: 10 }));
 	app.use('/uploads', express.static('uploads'));
-	// ! Enable WebSocket adapter
-	app.useWebSocketAdapter(new WsAdapter(app));
+	app.useWebSocketAdapter(new IoAdapter(app));
 	await app.listen(process.env.PORT_API ?? 3000);
 }
 bootstrap();
