@@ -3,7 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreatedOrdersPayload, Order, OrdersData } from '../../libs/dto/order/order';
 import { CreateOrderInput, MyOrdersInquiry, AllOrdersInquiry, BrandOrdersInquiry } from '../../libs/dto/order/order.input';
-import { BrandOrderUpdate, OrderUpdate } from '../../libs/dto/order/order.update';
+import { BrandBulkOrderUpdate, BrandOrderUpdate, OrderUpdate } from '../../libs/dto/order/order.update';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -56,6 +56,16 @@ export class OrderResolver {
 		@AuthMember('_id') brandId: ObjectId,
 	): Promise<Order> {
 		return await this.orderService.updateOrderByBrand(brandId, input);
+	}
+
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Mutation(() => [Order])
+	public async updateOrdersByBrand(
+		@Args('input') input: BrandBulkOrderUpdate,
+		@AuthMember('_id') brandId: ObjectId,
+	): Promise<Order[]> {
+		return await this.orderService.updateOrdersByBrand(brandId, input);
 	}
 
 	@UseGuards(AuthGuard)

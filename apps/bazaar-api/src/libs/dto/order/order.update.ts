@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum, IsMongoId, IsOptional } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsEnum, IsMongoId, IsOptional } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { OrderDeliveryStatus, OrderPaymentMethod, OrderPaymentStatus, OrderStatus } from '../../enums/order.enum';
 
@@ -40,6 +40,19 @@ export class BrandOrderUpdate {
 	@IsMongoId()
 	@Field(() => String)
 	_id: ObjectId;
+
+	@IsEnum(OrderStatus)
+	@Field(() => OrderStatus)
+	orderStatus: OrderStatus;
+}
+
+@InputType()
+export class BrandBulkOrderUpdate {
+	@IsArray()
+	@ArrayNotEmpty()
+	@IsMongoId({ each: true })
+	@Field(() => [String])
+	_ids: ObjectId[];
 
 	@IsEnum(OrderStatus)
 	@Field(() => OrderStatus)

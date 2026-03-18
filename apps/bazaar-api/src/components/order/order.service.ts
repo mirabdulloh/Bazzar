@@ -14,7 +14,7 @@ import {
 	MyOrdersInquiry,
 	BrandOrdersInquiry,
 } from '../../libs/dto/order/order.input';
-import { BrandOrderUpdate, OrderUpdate } from '../../libs/dto/order/order.update';
+import { BrandBulkOrderUpdate, BrandOrderUpdate, OrderUpdate } from '../../libs/dto/order/order.update';
 import { OrderItem } from '../../libs/dto/order-items/order-item';
 import { Product } from '../../libs/dto/product/product';
 import { Direction, Message } from '../../libs/enums/common.enum';
@@ -490,6 +490,25 @@ export class OrderService {
 
 		await this.notifyOrderStatusChange(updated, input.orderStatus, notificationTitle, brandId);
 		return await this.getOrderForReturn(orderId);
+	}
+
+	public async updateOrdersByBrand(brandId: ObjectId, input: BrandBulkOrderUpdate): Promise<Order[]> {
+		if (![OrderStatus.CONFIRMED, OrderStatus.SHIPPED].includes(input.orderStatus)) {
+			throw new BadRequestException('Bulk update supports only confirm and shipped actions');
+		}
+
+		const uniqueIds = [...new Set(input._ids.map((id) => shapeIntoMongoObjectId(id).toString()))];
+		const updatedOrders: Order[] = [];
+
+		for (const id of uniqueIds) {
+			const updated = await this.updateOrderByBrand(brandId, {
+				_id: shapeIntoMongoObjectId(id),
+				orderStatus: input.orderStatus,
+			});
+			updatedOrders.push(updated);
+		}
+
+		return updatedOrders;
 	}
 
 	// ! CUSTOMER CONFIRMS DELIVERY
