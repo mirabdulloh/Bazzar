@@ -22,6 +22,67 @@ export class BrandService {
 		private readonly viewService: ViewService,
 	) {}
 
+	private buildBrandMetricsPipeline(memberId?: ObjectId): PipelineStage[] {
+		const pipeline: PipelineStage[] = [
+			lookupBrandMemberData as PipelineStage,
+			{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+			{
+				$lookup: {
+					from: 'products',
+					let: { brandMemberId: '$_id' },
+					pipeline: [
+						{ $match: { $expr: { $eq: ['$memberId', '$$brandMemberId'] } } },
+						{
+							$group: {
+								_id: null,
+								totalReviews: { $sum: { $ifNull: ['$productRatingCount', 0] } },
+								weightedRatingSum: {
+									$sum: {
+										$multiply: [
+											{ $ifNull: ['$productRatingAverage', 0] },
+											{ $ifNull: ['$productRatingCount', 0] },
+										],
+									},
+								},
+							},
+						},
+					],
+					as: 'brandProductMetrics',
+				},
+			},
+			{ $unwind: { path: '$brandProductMetrics', preserveNullAndEmptyArrays: true } },
+			{
+				$addFields: {
+					memberRank: { $ifNull: ['$memberData.memberRank', 0] },
+					brandFollowersCount: {
+						$ifNull: ['$memberData.memberFollowers', { $ifNull: ['$brandFollowersCount', 0] }],
+					},
+					brandReviewsCount: {
+						$ifNull: ['$brandProductMetrics.totalReviews', { $ifNull: ['$brandReviewsCount', 0] }],
+					},
+					brandRating: {
+						$cond: [
+							{ $gt: [{ $ifNull: ['$brandProductMetrics.totalReviews', 0] }, 0] },
+							{
+								$divide: [
+									{ $ifNull: ['$brandProductMetrics.weightedRatingSum', 0] },
+									'$brandProductMetrics.totalReviews',
+								],
+							},
+							{ $ifNull: ['$brandRating', 0] },
+						],
+					},
+				},
+			},
+		];
+
+		if (memberId) {
+			pipeline.push(lookupAuthMemberLiked(memberId) as PipelineStage);
+		}
+
+		return pipeline;
+	}
+
 	// ! AUTO-CREATE BRAND ON SIGNUP (called from MemberService when memberType = BRAND)
 	// Brand starts as PENDING — admin must approve before brand can add logo/products
 	public async createBrandOnSignup(memberId: ObjectId, memberNick: string): Promise<Brand> {
@@ -58,12 +119,11 @@ export class BrandService {
 
 	// ! GET MY BRAND (logged-in brand member views their own brand)
 	public async getMyBrand(memberId: ObjectId): Promise<Brand> {
-		const result = await this.brandModel.findById(memberId).exec();
-		if (!result) throw new NotFoundException(Message.NO_DATA_FOUND);
-		if (result.brandRating == null) result.brandRating = 0;
-		if (result.brandFollowersCount == null) result.brandFollowersCount = 0;
-		if (result.brandReviewsCount == null) result.brandReviewsCount = 0;
-		return result;
+		const result = await this.brandModel
+			.aggregate([{ $match: { _id: memberId } }, ...this.buildBrandMetricsPipeline()])
+			.exec();
+		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return result[0];
 	}
 
 	// ! GET SINGLE BRAND (public — increments memberViews when called by logged-in user)
@@ -71,15 +131,7 @@ export class BrandService {
 		const result = await this.brandModel
 			.aggregate([
 				{ $match: { _id: brandId, brandStatus: { $ne: BrandStatus.SUSPENDED } } },
-				{
-					$addFields: {
-						brandRating: { $ifNull: ['$brandRating', 0] },
-						brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
-						brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
-					},
-				},
-				lookupBrandMemberData,
-				{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+				...this.buildBrandMetricsPipeline(memberId),
 			])
 			.exec();
 
@@ -112,22 +164,10 @@ export class BrandService {
 		}
 
 		const listPipeline: PipelineStage[] = [
-			...(sortKey === 'memberRank' ? [] : [{ $sort: sort }]),
-			...(sortKey === 'memberRank' ? [] : [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
-			{
-				$addFields: {
-					brandRating: { $ifNull: ['$brandRating', 0] },
-					brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
-					brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
-				},
-			},
-			lookupBrandMemberData,
-			{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
-			{ $addFields: { memberRank: { $ifNull: ['$memberData.memberRank', 0] } } },
-			...(memberId ? [lookupAuthMemberLiked(memberId)] : []),
-			...(sortKey === 'memberRank'
-				? [{ $sort: { memberRank: sortDir } }, { $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]
-				: []),
+			...this.buildBrandMetricsPipeline(memberId),
+			{ $sort: sort },
+			{ $skip: (input.page - 1) * input.limit },
+			{ $limit: input.limit },
 		];
 
 		const result = await this.brandModel
@@ -178,21 +218,10 @@ export class BrandService {
 		}
 
 		const adminListPipeline: PipelineStage[] = [
-			...(sortKey === 'memberRank' ? [] : [{ $sort: sort }]),
-			...(sortKey === 'memberRank' ? [] : [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]),
-			{
-				$addFields: {
-					brandRating: { $ifNull: ['$brandRating', 0] },
-					brandFollowersCount: { $ifNull: ['$brandFollowersCount', 0] },
-					brandReviewsCount: { $ifNull: ['$brandReviewsCount', 0] },
-				},
-			},
-			lookupBrandMemberData,
-			{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
-			{ $addFields: { memberRank: { $ifNull: ['$memberData.memberRank', 0] } } },
-			...(sortKey === 'memberRank'
-				? [{ $sort: { memberRank: sortDir } }, { $skip: (input.page - 1) * input.limit }, { $limit: input.limit }]
-				: []),
+			...this.buildBrandMetricsPipeline(),
+			{ $sort: sort },
+			{ $skip: (input.page - 1) * input.limit },
+			{ $limit: input.limit },
 		];
 
 		const result = await this.brandModel
