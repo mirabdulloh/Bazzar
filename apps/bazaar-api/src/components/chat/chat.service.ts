@@ -11,7 +11,7 @@ import {
 	OpenBrandChatInput,
 	OpenSupportChatInput,
 } from '../../libs/dto/chat/chat.input';
-import { Chat, Chats } from '../../libs/dto/chat/chat';
+import { Chat, ChatPresence, Chats } from '../../libs/dto/chat/chat';
 import { ChatUpdate } from '../../libs/dto/chat/chat.update';
 import { MessageChat } from '../../libs/dto/messages-chat/messages-chat';
 import { T } from '../../libs/types/common';
@@ -146,6 +146,34 @@ export class ChatService {
 
 		if (!result.length) throw new NotFoundException(Message.NO_DATA_FOUND);
 		return this.enrichChatForViewer(result[0], viewerId, viewerType);
+	}
+
+	public async getChatPresence(chatId: ObjectId, viewerId: ObjectId, viewerType: MemberType): Promise<ChatPresence> {
+		const chat = await this.chatModel.findById(chatId).lean().exec();
+		if (!chat) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		this.getChatAccessContext(chat, viewerId, viewerType);
+
+		const targetMemberId = this.resolvePresenceTargetMemberId(chat, viewerId, viewerType);
+		if (!targetMemberId) {
+			return {
+				targetMemberId: undefined,
+				isOnline: false,
+				lastActiveAt: undefined,
+			};
+		}
+
+		const member = await this.memberModel
+			.findById(targetMemberId)
+			.select({ _id: 1, lastActiveAt: 1 })
+			.lean()
+			.exec();
+
+		return {
+			targetMemberId: targetMemberId as ObjectId,
+			isOnline: this.socketGateway.isUserOnline(targetMemberId.toString()),
+			lastActiveAt: member?.lastActiveAt ?? undefined,
+		};
 	}
 
 	public async getMyChats(memberId: ObjectId, input: ChatsInquiry): Promise<Chats> {
@@ -519,6 +547,25 @@ export class ChatService {
 		}
 
 		return match;
+	}
+
+	private resolvePresenceTargetMemberId(chat: T, viewerId: ObjectId, viewerType: MemberType): ObjectId | null {
+		const viewerIdStr = viewerId.toString();
+
+		if (chat.chatScope === ChatScope.BRAND_DIRECT) {
+			if (viewerType === MemberType.BRAND) return chat.requesterId ?? null;
+			return chat.brandId ?? null;
+		}
+
+		if (viewerType === MemberType.ADMIN) {
+			return chat.requesterId ?? null;
+		}
+
+		if (chat.assignedAdminId && chat.assignedAdminId.toString() !== viewerIdStr) {
+			return chat.assignedAdminId as ObjectId;
+		}
+
+		return null;
 	}
 
 	private async buildChatsAggregate(

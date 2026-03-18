@@ -7,7 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
-import { Chat, Chats } from '../../libs/dto/chat/chat';
+import { Chat, ChatPresence, Chats } from '../../libs/dto/chat/chat';
 import {
 	ChatsInquiry,
 	ChatsInquiryByAdmin,
@@ -64,6 +64,16 @@ export class ChatResolver {
 	): Promise<Chat> {
 		input.chatId = shapeIntoMongoObjectId(input.chatId);
 		return await this.chatService.getChat(input, viewerId, viewerType);
+	}
+
+	@UseGuards(AuthGuard)
+	@Query(() => ChatPresence)
+	public async getChatPresence(
+		@Args('chatId') chatId: string,
+		@AuthMember('_id') viewerId: ObjectId,
+		@AuthMember('memberType') viewerType: MemberType,
+	): Promise<ChatPresence> {
+		return await this.chatService.getChatPresence(shapeIntoMongoObjectId(chatId), viewerId, viewerType);
 	}
 
 	@Roles(MemberType.USER)

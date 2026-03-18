@@ -30,7 +30,7 @@ export const availableReviewSorts = ['createdAt', 'updatedAt', 'reviewRating', '
 export const availableCouponSorts = ['createdAt', 'updatedAt', 'couponStartDate', 'couponEndDate'];
 export const availableNotificationSorts = ['createdAt', 'updatedAt'];
 export const availableChatSorts = ['createdAt', 'updatedAt'];
-export const allowedUploadTargets = ['members', 'products', 'article', 'articles', 'reviews'];
+export const allowedUploadTargets = ['members', 'products', 'article', 'articles', 'reviews', 'chat'];
 //! IMAGE CONFIGURATION (config.js)
 
 import { v4 as uuidv4 } from 'uuid';

@@ -30,6 +30,18 @@ export class ChatLastMessage {
 }
 
 @ObjectType()
+export class ChatPresence {
+	@Field(() => String, { nullable: true })
+	targetMemberId?: ObjectId;
+
+	@Field(() => Boolean)
+	isOnline: boolean;
+
+	@Field(() => Date, { nullable: true })
+	lastActiveAt?: Date;
+}
+
+@ObjectType()
 export class Chat {
 	@Field(() => String)
 	_id: ObjectId;

@@ -34,6 +34,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 	constructor(
 		private readonly authService: AuthService,
 		@InjectModel('Chat') private readonly chatModel: Model<T>,
+		@InjectModel('Member') private readonly memberModel: Model<T>,
 	) {}
 
 	@WebSocketServer()
@@ -49,6 +50,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 			const member = await this.verifyMember(token);
 			if (member) {
 				await this.registerSession(client, member);
+				client.emit('authenticated', { userId: member._id.toString(), memberType: member.memberType });
 				return;
 			}
 		}
@@ -77,7 +79,10 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 		const socketIds = this.userSocketMap.get(memberId);
 		if (!socketIds) return;
 		socketIds.delete(client.id);
-		if (!socketIds.size) this.userSocketMap.delete(memberId);
+		if (!socketIds.size) {
+			this.userSocketMap.delete(memberId);
+			void this.touchMemberActivity(memberId);
+		}
 	}
 
 	@SubscribeMessage('authenticate')
@@ -232,7 +237,15 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 		userSockets.add(client.id);
 		this.userSocketMap.set(memberId, userSockets);
 		await client.join(this.userRoom(memberId));
+		await this.touchMemberActivity(memberId);
 		this.logger.verbose(`Chat socket authenticated: ${member.memberNick} [${memberId}]`);
+	}
+
+	private async touchMemberActivity(memberId: string): Promise<void> {
+		await this.memberModel
+			.updateOne({ _id: memberId }, { $set: { lastActiveAt: new Date() } })
+			.exec()
+			.catch(() => {});
 	}
 
 	private canAccessChat(chat: T, member: Member): boolean {
