@@ -102,6 +102,19 @@ export class ProductsResolver {
 		return await this.productsService.getBrandProducts(memberId, input);
 	}
 
+	// ! Get Single Brand Product (Brand owner)
+	@Roles(MemberType.BRAND)
+	@UseGuards(AuthGuard, RolesGuard)
+	@Query(() => Product)
+	public async getBrandProduct(
+		@Args('productId') input: string,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Product> {
+		console.log('Query: getBrandProduct');
+		const productId = shapeIntoMongoObjectId(input);
+		return await this.productsService.getBrandProduct(memberId, productId);
+	}
+
 	// ! Get Favorite Products (Liked products)
 	@UseGuards(AuthGuard)
 	@Query(() => ProductsData)

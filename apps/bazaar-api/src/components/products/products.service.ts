@@ -187,6 +187,26 @@ export class ProductsService {
 		};
 	}
 
+	// ! GET SINGLE BRAND PRODUCT (Brand owner, includes deleted products)
+	public async getBrandProduct(memberId: ObjectId, productId: ObjectId): Promise<Product> {
+		const targetProduct = await this.productModel
+			.aggregate([
+				{
+					$match: {
+						_id: productId,
+						memberId: memberId,
+					},
+				},
+				lookupMember,
+				{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+			])
+			.exec();
+
+		if (!targetProduct.length) throw new NotFoundException(Message.NO_DATA_FOUND);
+
+		return targetProduct[0];
+	}
+
 	// ! UPDATE PRODUCT (Brand owner)
 	public async updateProduct(memberId: ObjectId, input: ProductUpdate): Promise<Product> {
 		const productId = shapeIntoMongoObjectId(input._id);
