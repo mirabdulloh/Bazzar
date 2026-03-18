@@ -274,6 +274,15 @@ export class ReviewService {
 							{ $limit: input.limit },
 							lookupMember,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+							{
+								$lookup: {
+									from: 'products',
+									localField: 'productId',
+									foreignField: '_id',
+									as: 'productData',
+								},
+							},
+							{ $unwind: { path: '$productData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],
 					},
