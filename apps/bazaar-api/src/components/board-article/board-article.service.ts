@@ -178,9 +178,21 @@ export class BoardArticleService {
 	}
 
 	public async removeBoardArticleByAdmin(articleId: ObjectId): Promise<Article> {
-		const search: T = { _id: articleId, articleStatus: ArticleStatus.DELETED };
+		const search: T = {
+			_id: articleId,
+			articleStatus: { $in: [ArticleStatus.INACTIVE, ArticleStatus.DELETED] },
+		};
 		const result = await this.boardArticleModel.findOneAndDelete(search).exec();
 		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
+
+		if (result.articleStatus === ArticleStatus.INACTIVE) {
+			await this.memberService.memberStatsEdits({
+				_id: result.memberId,
+				targetKey: 'memberArticles',
+				modifier: -1,
+			});
+		}
+
 		return result;
 	}
 
