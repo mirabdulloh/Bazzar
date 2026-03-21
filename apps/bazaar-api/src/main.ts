@@ -9,14 +9,20 @@ import { LoggingInterceptor } from './libs/interceptors/Loggin.interceptor';
 function getAllowedOrigins(): true | string[] {
 	const origin = process.env.CORS_ORIGIN?.trim();
 	if (!origin) return process.env.NODE_ENV === 'production' ? [] : true;
-	return origin.split(',').map((item) => item.trim()).filter(Boolean);
+	return origin
+		.split(',')
+		.map((item) => item.trim())
+		.filter(Boolean);
 }
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
 	if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === 'true') {
-		app.set('trust proxy', 1);
+		const httpApp = app.getHttpAdapter().getInstance();
+		if (typeof httpApp?.set === 'function') {
+			httpApp.set('trust proxy', 1);
+		}
 	}
 
 	app.useGlobalPipes(
