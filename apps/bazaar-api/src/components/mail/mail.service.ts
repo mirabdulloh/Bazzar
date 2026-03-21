@@ -5,6 +5,8 @@ import { OrderStatus } from '../../libs/enums/order.enum';
 @Injectable()
 export class MailService {
 	private readonly logger = new Logger('MailService');
+	private readonly mailProvider = (process.env.MAIL_PROVIDER ?? 'smtp').toLowerCase();
+	private readonly resendApiUrl = 'https://api.resend.com/emails';
 
 	/** Batch size and delay between batches for bulk sending */
 	private readonly BATCH_SIZE = 5;
@@ -25,16 +27,47 @@ export class MailService {
 		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
+	private async sendViaResend(to: string, subject: string, text: string): Promise<void> {
+		const apiKey = process.env.RESEND_API_KEY;
+		const from = process.env.MAIL_FROM;
+
+		if (!apiKey) throw new Error('RESEND_API_KEY is not configured');
+		if (!from) throw new Error('MAIL_FROM is not configured');
+
+		const response = await fetch(this.resendApiUrl, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				from,
+				to: [to],
+				subject,
+				text,
+			}),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Resend error ${response.status}: ${errorText}`);
+		}
+	}
+
 	/** Send a single email with automatic retry + exponential backoff */
 	private async send(to: string, subject: string, text: string): Promise<void> {
 		for (let attempt = 0; attempt <= this.RETRY_DELAYS.length; attempt++) {
 			try {
-				await this.transporter.sendMail({
-					from: process.env.MAIL_FROM,
-					to,
-					subject,
-					text,
-				});
+				if (this.mailProvider === 'resend') {
+					await this.sendViaResend(to, subject, text);
+				} else {
+					await this.transporter.sendMail({
+						from: process.env.MAIL_FROM,
+						to,
+						subject,
+						text,
+					});
+				}
 				this.logger.verbose(`Email sent to ${to}: "${subject}"`);
 				return;
 			} catch (err) {
