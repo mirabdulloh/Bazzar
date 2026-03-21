@@ -63,3 +63,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Images Uploads file
 
+#env
+.env.production
+.env.example
