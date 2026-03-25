@@ -20,6 +20,12 @@ const ChatSchema = new Schema(
 			required: true,
 		},
 
+		// Legacy mirror kept for compatibility with older DB indexes/documents.
+		memberId: {
+			type: Schema.Types.ObjectId,
+			default: null,
+		},
+
 		requesterType: {
 			type: String,
 			enum: Object.values(ChatRequesterType),

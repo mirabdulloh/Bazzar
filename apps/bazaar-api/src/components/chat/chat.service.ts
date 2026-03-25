@@ -37,9 +37,9 @@ export class ChatService {
 		const existing = await this.chatModel
 			.findOne({
 				chatScope: ChatScope.BRAND_DIRECT,
-				requesterId: memberId,
 				requesterType: ChatRequesterType.USER,
 				brandId: input.brandId,
+				$or: [{ requesterId: memberId }, { memberId }],
 			})
 			.lean()
 			.exec();
@@ -51,6 +51,8 @@ export class ChatService {
 					{
 						$set: {
 							chatStatus: ChatStatus.OPEN,
+							requesterId: memberId,
+							memberId,
 							...(input.chatSubject ? { chatSubject: input.chatSubject } : {}),
 						},
 						$pull: { deletedForMemberIds: new Types.ObjectId(memberId.toString()) },
@@ -66,6 +68,7 @@ export class ChatService {
 			chatScope: ChatScope.BRAND_DIRECT,
 			chatStatus: ChatStatus.OPEN,
 			requesterId: memberId,
+			memberId,
 			requesterType: ChatRequesterType.USER,
 			brandId: input.brandId,
 			chatSubject: input.chatSubject ?? null,
