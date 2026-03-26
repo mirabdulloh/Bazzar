@@ -19,7 +19,7 @@ import { MemberType } from '../../libs/enums/member.enum';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
 import { getSerialForImage, shapeIntoMongoObjectId, validMimeTypes, allowedUploadTargets } from '../../libs/config';
-import { generateUploadThumbnail } from '../../libs/upload-thumbnail';
+import { generateUploadThumbnail, normalizeUploadedImage } from '../../libs/upload-thumbnail';
 import { Message } from '../../libs/enums/common.enum';
 import { GraphQLUpload, FileUpload } from 'graphql-upload';
 import { createWriteStream, mkdirSync } from 'fs';
@@ -194,6 +194,7 @@ export class MemberResolver {
 		});
 		if (!result) throw new Error(Message.UPLOAD_FAILED);
 
+		await normalizeUploadedImage(url, target);
 		await generateUploadThumbnail(url, target);
 
 		return url;
@@ -231,6 +232,7 @@ export class MemberResolver {
 				});
 				if (!result) throw new Error(Message.UPLOAD_FAILED);
 
+				await normalizeUploadedImage(url, target);
 				await generateUploadThumbnail(url, target);
 				uploadedImages[index] = url;
 			} catch (err) {
