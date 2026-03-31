@@ -89,24 +89,32 @@ export class ChatService {
 
 		const requesterType =
 			requesterMemberType === MemberType.BRAND ? ChatRequesterType.BRAND : ChatRequesterType.USER;
+		const legacyMirror =
+			requesterMemberType === MemberType.BRAND
+				? { memberId: null, brandId: requesterId }
+				: { memberId: requesterId, brandId: null };
 
 		const existing = await this.chatModel
 			.findOne({
 				chatScope: ChatScope.ADMIN_SUPPORT,
-				requesterId,
 				requesterType,
-				chatStatus: { $ne: ChatStatus.CLOSED },
+				$or: [{ requesterId }, legacyMirror],
 			})
 			.sort({ updatedAt: Direction.DESC })
 			.lean()
 			.exec();
 
 		if (existing) {
+			const shouldReopen = existing.chatStatus === ChatStatus.CLOSED;
 			await this.chatModel
 				.updateOne(
 					{ _id: existing._id },
 					{
 						$set: {
+							requesterId,
+							requesterType,
+							...legacyMirror,
+							...(shouldReopen ? { chatStatus: ChatStatus.PENDING, assignedAdminId: null } : {}),
 							...(existing.supportTopic ? {} : { supportTopic: input.supportTopic ?? null }),
 							...(existing.sourcePath ? {} : { sourcePath: input.sourcePath ?? null }),
 						},
@@ -124,7 +132,7 @@ export class ChatService {
 			chatStatus: ChatStatus.PENDING,
 			requesterId,
 			requesterType,
-			brandId: requesterMemberType === MemberType.BRAND ? requesterId : null,
+			...legacyMirror,
 			assignedAdminId: null,
 			supportTopic: input.supportTopic ?? null,
 			sourcePath: input.sourcePath ?? null,
