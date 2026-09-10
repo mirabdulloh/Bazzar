@@ -11,7 +11,11 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# `npm run build` is plain `nest build`, which only builds the root project
+# (bazaar-api). The batch worker needs an explicit build or
+# dist/apps/bazaar-batch/main never exists. Each project has its own outDir,
+# so deleteOutDir does not wipe the other.
+RUN npm run build && npx nest build bazaar-batch
 
 FROM node:20-alpine AS prod-deps
 
